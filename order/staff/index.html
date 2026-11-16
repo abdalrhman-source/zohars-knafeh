@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2E2D32">
+<meta name="robots" content="noindex">
+<title>מסך הזמנות · הכנאפה של זוהר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{color-scheme:dark;--bg:#2E2D32;--card:#3A393F;--line:#4B4A51;--ink:#F2EFE8;--muted:#ABA8B0;--gold:#D1B06D;--green:#7FB069}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:"Heebo","Tajawal",system-ui,sans-serif;min-height:100vh}
+  header{position:sticky;top:0;z-index:5;background:#242328;border-bottom:3px solid var(--gold);padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  h1{font-size:20px;font-weight:800}
+  h1 small{font-size:13px;font-weight:500;color:var(--muted);margin-inline-start:6px}
+  .counts{display:flex;gap:8px;margin-inline-start:auto}
+  .chip{font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip b{color:var(--gold)}
+  button{font:inherit;cursor:pointer}
+  .snd{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--gold)}
+  .snd.on{background:var(--gold);color:#2B2A2E}
+  .demo{margin:12px 16px 0;padding:9px 14px;border-radius:12px;background:var(--gold);color:#2B2A2E;font-size:13px;font-weight:700;text-align:center}
+  main{padding:14px 16px 40px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));align-items:start}
+  .empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
+  .ord{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px}
+  .ord.new{border-color:var(--gold);box-shadow:0 0 0 2px rgba(209,176,109,.35)}
+  .ord.ready{border-color:var(--green)}
+  .top{display:flex;align-items:baseline;gap:10px}
+  .no{font-size:28px;font-weight:800;color:var(--gold)}
+  .ord.ready .no{color:var(--green)}
+  .tm{font-size:13px;color:var(--muted)}
+  .badge{margin-inline-start:auto;font-size:12px;font-weight:800;padding:3px 10px;border-radius:999px;background:rgba(209,176,109,.18);color:var(--gold)}
+  .ord.ready .badge{background:rgba(127,176,105,.2);color:#B9E0A5}
+  .who{font-size:14px;color:var(--muted)}
+  .who a{color:var(--ink)}
+  .ln{border-top:1px dashed var(--line);padding-top:8px}
+  .ln .nm{font-weight:700;display:flex;justify-content:space-between;gap:8px}
+  .ln .op{font-size:13.5px;color:var(--muted);padding-inline-start:12px}
+  .note{font-size:14px;background:rgba(209,176,109,.12);border-radius:10px;padding:7px 10px}
+  .tot{display:flex;justify-content:space-between;font-weight:800;border-top:1px solid var(--line);padding-top:8px}
+  .acts{display:flex;gap:8px;margin-top:4px}
+  .acts button{flex:1;border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:800}
+  .rdy{background:var(--green);color:#16240F}
+  .dn{background:transparent;border:1px solid var(--line)!important;color:var(--ink)}
+  .undo{background:transparent;border:1px solid var(--line)!important;color:var(--muted);font-size:13px!important;flex:0 0 auto!important;padding:12px 14px!important}
+</style>
+</head>
+<body>
+<header>
+  <h1>הזמנות · الطلبات <small>הכנאפה של זוהר</small></h1>
+  <div class="counts"><span class="chip">בהכנה · عم يتحضّر <b id="cPrep">0</b></span><span class="chip">מוכן · جاهز <b id="cReady">0</b></span></div>
+  <button type="button" class="snd" id="snd">🔔 צליל · صوت</button>
+</header>
+<div class="demo">גרסת ניסיון · עובד רק באותו מכשיר שבו נשלחה ההזמנה · نسخة تجربة: بتشتغل بس على نفس الجهاز اللي انبعت منه الطلب</div>
+<main id="list"></main>
+<script>
+const KEY = "zk-orders";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || "[]"); } catch(e){ return []; } };
+const save = a => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch(e){} };
+const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
+let seen = new Set(load().map(o => o.no)), actx = null;
+
+function draw(){
+  const all = load(), open = all.filter(o => o.status !== "done").sort((a, b) => (a.status === "ready") - (b.status === "ready") || a.no - b.no);
+  document.getElementById("cPrep").textContent = all.filter(o => o.status === "new").length;
+  document.getElementById("cReady").textContent = all.filter(o => o.status === "ready").length;
+  document.getElementById("list").innerHTML = open.length ? open.map(o => `
+    <article class="ord ${o.status === "ready" ? "ready" : "new"}">
+      <div class="top"><span class="no">#${o.no}</span><span class="tm">${hhmm(o.t)} · איסוף עצמי</span><span class="badge">${o.status === "ready" ? "מוכן · جاهز" : "בהכנה · عم يتحضّر"}</span></div>
+      ${o.name || o.phone ? `<div class="who">${esc(o.name)}${o.phone ? ` · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>` : ""}</div>` : ""}
+      ${o.lines.map(x => `<div class="ln"><div class="nm"><span>${x.q}× ${esc(x.n[0])}</span><span>${x.p}₪</span></div>${x.o[0].map(v => `<div class="op">• ${esc(v)}</div>`).join("")}</div>`).join("")}
+      ${o.note ? `<div class="note">הערה: ${esc(o.note)}</div>` : ""}
+      <div class="tot"><span>סה״כ</span><span>${o.total}₪</span></div>
+      <div class="acts">${o.status === "ready"
+        ? `<button type="button" class="dn" data-no="${o.no}" data-to="done">נאסף · استلم</button><button type="button" class="undo" data-no="${o.no}" data-to="new">↩</button>`
+        : `<button type="button" class="rdy" data-no="${o.no}" data-to="ready">מוכן ✅ جاهز</button>`}</div>
+    </article>`).join("") : `<div class="empty">אין הזמנות פתוחות · ما في طلبات</div>`;
+}
+document.getElementById("list").addEventListener("click", e => {
+  const b = e.target.closest("button[data-no]"); if (!b) return;
+  const all = load(), o = all.find(x => x.no === +b.dataset.no); if (!o) return;
+  o.status = b.dataset.to; save(all); draw();
+});
+document.getElementById("snd").addEventListener("click", e => {
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); e.currentTarget.classList.add("on"); beep(); } catch(err){}
+});
+function beep(){
+  if (!actx) return;
+  try { [0, .25, .5].forEach(off => { const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = 660; g.gain.setValueAtTime(.0001, actx.currentTime + off);
+    g.gain.exponentialRampToValueAtTime(.35, actx.currentTime + off + .02);
+    g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime + off + .2);
+    o.connect(g).connect(actx.destination); o.start(actx.currentTime + off); o.stop(actx.currentTime + off + .22); }); } catch(e){}
+}
+window.addEventListener("storage", e => {
+  if (e.key !== KEY) return;
+  const fresh = load().filter(o => !seen.has(o.no));
+  fresh.forEach(o => seen.add(o.no));
+  if (fresh.length) beep();
+  draw();
+});
+draw();
+</script>
+</body>
+</html>

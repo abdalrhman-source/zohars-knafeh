@@ -278,6 +278,23 @@
   .tk-pay{margin-top:8px;font-size:12.5px}
   .tk-btns{display:flex;flex-direction:column;gap:8px;margin-top:10px}
   .ghost{font:inherit;font-size:14.5px;font-weight:700;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:14px;padding:11px;cursor:pointer}
+  .demo-bar a{color:#2B2A2E;text-decoration:underline;font-weight:800}
+  .status{text-align:center;padding:18px 12px;margin-top:14px;border-radius:16px;border:1px solid var(--line);background:var(--cream)}
+  .status .st-ic{font-size:34px;line-height:1}
+  .status .st-tx{font-size:18px;font-weight:800;margin-top:8px}
+  .status .st-sub{font-size:13px;color:var(--muted);margin-top:6px}
+  .status.ready{background:rgba(127,176,105,.16);border-color:#7FB069}
+  .status.ready .st-tx{color:#B9E0A5}
+  .staff-link{display:block;text-align:center;text-decoration:none}
+  .status-pill{position:fixed;z-index:39;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));
+    width:min(92vw,520px);display:flex;align-items:center;gap:10px;padding:11px 16px;border-radius:14px;cursor:pointer;
+    font:inherit;font-size:14.5px;font-weight:700;color:var(--ink);background:#3A393F;border:1px solid var(--gold);box-shadow:0 10px 30px rgba(0,0,0,.45);text-align:start}
+  .status-pill[hidden]{display:none}
+  .status-pill.ready{background:#3E5A33;border-color:#7FB069;color:#fff;animation:pulse 1.2s ease-in-out 3}
+  body.has-cart .status-pill{bottom:calc(80px + env(safe-area-inset-bottom))}
+  body.has-pill{padding-bottom:84px}
+  body.has-pill.has-cart{padding-bottom:140px}
+  @keyframes pulse{50%{transform:translateX(-50%) scale(1.03)}}
 </style>
 </head>
 <body>
@@ -584,7 +601,7 @@ function decorate(){
     const b = document.createElement("div"); b.id = "demoBar"; b.className = "demo-bar";
     menu.parentNode.insertBefore(b, menu);
   }
-  document.getElementById("demoBar").textContent = t.demo;
+  document.getElementById("demoBar").innerHTML = `${esc(t.demo)} · <a href="staff/" target="_blank" rel="noopener">${esc(ST[lang].staff)}</a>`;
   menu.querySelectorAll(".optbtn").forEach(b => b.remove());
   menu.querySelectorAll(".item[data-c]").forEach(el => {
     if (el.classList.contains("off")) return;
@@ -603,7 +620,7 @@ function decorate(){
   updateBar();
 }
 const _baseRender = render;
-render = function(){ _baseRender(); decorate(); };
+render = function(){ _baseRender(); decorate(); if (typeof updatePill === 'function') updatePill(); };
 
 document.getElementById("menu").addEventListener("click", e => {
   const b = e.target.closest(".addbtn"); if (!b) return;
@@ -725,37 +742,91 @@ sheet.addEventListener("click", e => {
       saveCart(); updateBar(); const y = sheet.scrollTop; drawCart(); sheet.scrollTop = y;
       if (!cart.length) closeSheet();
     } else if (e.target.closest(".send")) {
-      sheet.dataset.mode = "ticket"; drawTicket(); sheet.scrollTop = 0;
+      unlockSound();
+      const o = placeOrder();
+      sheet.dataset.mode = "status"; drawStatus(o.no); sheet.scrollTop = 0;
     }
-  } else if (sheet.dataset.mode === "ticket") {
-    if (e.target.closest(".new-order")) { cart = []; form = {name:"", phone:"", note:""}; saveCart(); updateBar(); closeSheet(); }
-    else if (e.target.closest(".back-order")) { sheet.dataset.mode = "cart"; drawCart(); }
+  } else if (sheet.dataset.mode === "status") {
+    if (e.target.closest(".new-order")) closeSheet();
   }
 });
 
-/* ---------- the kitchen ticket (always Hebrew, like the printer) ---------- */
-function drawTicket(){
-  const t = T(), {sum} = cartTotals(), no = 100 + Math.floor(Math.random() * 900), d = new Date();
+/* ---------- orders: kept on this device for the demo (a server replaces this later) ---------- */
+const ORD_KEY = "zk-orders", MY_KEY = "zk-my";
+const loadOrders = () => { try { return JSON.parse(localStorage.getItem(ORD_KEY) || "[]"); } catch(e){ return []; } };
+const saveOrders = a => { try { localStorage.setItem(ORD_KEY, JSON.stringify(a)); } catch(e){} };
+const myNo = () => { try { return +localStorage.getItem(MY_KEY) || 0; } catch(e){ return 0; } };
+function placeOrder(){
+  const orders = loadOrders(), {sum} = cartTotals();
+  const no = (orders.reduce((m, o) => Math.max(m, o.no), 0) || 0) + 1;
+  const lines = cart.map(ln => { const it = itemOf(ln); return it && {q: ln.q, n: it.n, o: [0,1,2].map(l => optText(it, ln.s, l)), p: unitPrice(it, ln.s) * ln.q}; }).filter(Boolean);
+  const o = {no, t: Date.now(), name: form.name.trim(), phone: form.phone.trim(), note: form.note.trim(), total: sum, lines, status: "new"};
+  orders.push(o); saveOrders(orders);
+  try { localStorage.setItem(MY_KEY, String(no)); } catch(e){}
+  cart = []; saveCart(); form.note = ""; updateBar(); updatePill();
+  return o;
+}
+const ST = {
+  he:{prep:"ההזמנה התקבלה ונמצאת בהכנה", ready:"ההזמנה שלך מוכנה! אפשר לגשת לדלפק 🙂", done:"ההזמנה נאספה. בתיאבון!", wait:"אל תסגרו את הדף, נעדכן כאן כשהיא מוכנה", order:"הזמנה", staff:"מסך המטבח (ניסיון)"},
+  ar:{prep:"وصل طلبك وعم يتحضّر", ready:"طلبك جاهز! تفضّل عالكاونتر 🙂", done:"استلمت طلبك. صحتين!", wait:"خلّي الصفحة مفتوحة، رح نحكيلك هون لما يجهز", order:"طلب", staff:"شاشة المحل (تجربة)"},
+  en:{prep:"Order received, being prepared", ready:"Your order is ready! Please come to the counter 🙂", done:"Order collected. Enjoy!", wait:"Keep this page open, we'll tell you here when it's ready", order:"Order", staff:"Kitchen screen (demo)"}
+};
+function drawStatus(no){
+  const o = loadOrders().find(x => x.no === no); if (!o) { closeSheet(); return; }
+  const t = T(), s = ST[lang], l = L(), d = new Date(o.t);
   const hh = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-  const lines = cart.map(ln => {
-    const it = itemOf(ln); if (!it) return "";
-    const opts = optText(it, ln.s, 0);
-    return `<div class="tk-line"><span>${ln.q}× ${esc(it.n[0])}</span><span>${unitPrice(it, ln.s) * ln.q}₪</span></div>` +
-      opts.map(o => `<div class="tk-opt">• ${esc(o)}</div>`).join("");
-  }).join("");
+  const st = o.status === "ready" ? "ready" : o.status === "done" ? "done" : "prep";
   sheetIn.innerHTML =
-    `<div class="sheet-head"><div class="nm">${esc(t.ticket)}</div><button type="button" class="sheet-close" aria-label="close">×</button></div>` +
+    `<div class="sheet-head"><div class="nm">${esc(s.order)} ${o.no}</div><button type="button" class="sheet-close" aria-label="close">×</button></div>` +
+    `<div class="status ${st}"><div class="st-ic">${st === "ready" ? "✅" : st === "done" ? "🙏" : "⏳"}</div><div class="st-tx">${esc(s[st])}</div>${st === "prep" ? `<div class="st-sub">${esc(s.wait)}</div>` : ""}</div>` +
     `<div class="ticket" dir="rtl">` +
       `<div class="tk-c tk-big">הכנאפה של זוהר</div><div class="tk-c">איסוף עצמי · ${hh}</div>` +
-      `<div class="tk-c tk-no">הזמנה ${no}</div>` +
-      (form.name || form.phone ? `<div class="tk-c">${esc(form.name)} ${form.phone ? "· " + esc(form.phone) : ""}</div>` : "") +
-      `<div class="tk-hr"></div>${lines}<div class="tk-hr"></div>` +
-      (form.note ? `<div class="tk-note">הערה: ${esc(form.note)}</div><div class="tk-hr"></div>` : "") +
-      `<div class="tk-line tk-total"><span>סה״כ</span><span>${sum}₪</span></div>` +
+      `<div class="tk-c tk-no">הזמנה ${o.no}</div>` +
+      (o.name || o.phone ? `<div class="tk-c">${esc(o.name)} ${o.phone ? "· " + esc(o.phone) : ""}</div>` : "") +
+      `<div class="tk-hr"></div>` +
+      o.lines.map(x => `<div class="tk-line"><span>${x.q}× ${esc(x.n[0])}</span><span>${x.p}₪</span></div>` + x.o[0].map(v => `<div class="tk-opt">• ${esc(v)}</div>`).join("")).join("") +
+      `<div class="tk-hr"></div>` +
+      (o.note ? `<div class="tk-note">הערה: ${esc(o.note)}</div><div class="tk-hr"></div>` : "") +
+      `<div class="tk-line tk-total"><span>סה״כ</span><span>${o.total}₪</span></div>` +
       `<div class="tk-c tk-pay">תשלום: Apple Pay · ניסיון</div>` +
     `</div>` +
-    `<div class="sheet-note">${esc(t.pay)}: ${esc(t.payDemo)}</div>` +
-    `<div class="tk-btns"><button type="button" class="add-go new-order">${esc(t.newOrder)}</button><button type="button" class="ghost back-order">${esc(t.back)}</button></div>`;
+    `<div class="sheet-note">${esc(t.ticket)} · ${esc(t.pay)}: ${esc(t.payDemo)}</div>` +
+    `<div class="tk-btns"><button type="button" class="add-go new-order">${esc(t.newOrder)}</button><a class="ghost staff-link" href="staff/" target="_blank" rel="noopener">${esc(s.staff)}</a></div>`;
+}
+
+/* status pill: follows the customer's latest order */
+const pill = document.createElement("button");
+pill.type = "button"; pill.className = "status-pill"; pill.hidden = true;
+document.body.appendChild(pill);
+pill.addEventListener("click", () => { const no = myNo(); if (!no) return; sheet.dataset.mode = "status"; drawStatus(no); sheet.classList.add("open"); sheetBg.classList.add("open"); });
+let lastSt = null;
+function updatePill(){
+  const no = myNo(), o = no && loadOrders().find(x => x.no === no), s = ST[lang];
+  if (!o || o.status === "done") { pill.hidden = true; document.body.classList.remove("has-pill"); lastSt = o ? o.status : null; return; }
+  pill.hidden = false; document.body.classList.add("has-pill");
+  pill.className = "status-pill " + (o.status === "ready" ? "ready" : "prep");
+  pill.innerHTML = `<span>${o.status === "ready" ? "✅" : "⏳"}</span><span>${esc(s.order)} ${o.no} · ${esc(o.status === "ready" ? s.ready : s.prep)}</span>`;
+  if (lastSt && lastSt !== "ready" && o.status === "ready") alertReady();
+  lastSt = o.status;
+}
+/* another tab (the kitchen screen) changed an order */
+window.addEventListener("storage", e => {
+  if (e.key !== ORD_KEY) return;
+  updatePill();
+  if (sheet.classList.contains("open") && sheet.dataset.mode === "status") { const y = sheet.scrollTop; drawStatus(myNo()); sheet.scrollTop = y; }
+});
+let actx = null;
+function unlockSound(){ try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); actx.resume(); } catch(e){} }
+function alertReady(){
+  try { navigator.vibrate && navigator.vibrate([250, 120, 250]); } catch(e){}
+  try {
+    if (!actx) return;
+    [0, 0.22].forEach(off => { const o = actx.createOscillator(), g = actx.createGain();
+      o.frequency.value = 880; g.gain.setValueAtTime(0.0001, actx.currentTime + off);
+      g.gain.exponentialRampToValueAtTime(0.3, actx.currentTime + off + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + off + 0.18);
+      o.connect(g).connect(actx.destination); o.start(actx.currentTime + off); o.stop(actx.currentTime + off + 0.2); });
+  } catch(e){}
 }
 
 /* the item sheet and the cart share one sheet element */
