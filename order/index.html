@@ -298,6 +298,25 @@
 
   .item[data-c]:not(.off),.drink[data-c]:not(.off),.pop[data-c]{cursor:pointer;-webkit-tap-highlight-color:rgba(209,176,109,.15)}
   .item[data-c]:not(.off):active,.drink[data-c]:not(.off):active,.pop[data-c]:active{transform:scale(.99)}
+  .pay{margin-top:14px}
+  .pay .gt{font-size:15px;font-weight:800;margin-bottom:9px}
+  .pay-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pay-o{font:inherit;font-size:14.5px;font-weight:700;display:flex;align-items:center;gap:8px;justify-content:center;padding:12px 10px;border-radius:12px;
+    cursor:pointer;color:var(--ink);background:var(--cream);border:1px solid var(--line)}
+  .pay-o.on{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold);background:rgba(209,176,109,.14)}
+  .pi{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 5px;border-radius:6px;font-size:13px;font-weight:800;line-height:1}
+  .pay-apple .pi{background:#000;color:#fff;font-family:-apple-system,system-ui,sans-serif;font-size:15px}
+  .pay-google .pi{background:#fff;color:#4285F4;font-family:Arial,sans-serif}
+  .pay-card .pi{background:transparent;font-size:17px}
+  .pay-bit .pi{background:#0FB8C2;color:#fff;font-family:Arial,sans-serif;font-size:12px}
+  .pay-note{font-size:12.5px;color:var(--muted);margin-top:8px;text-align:center}
+  .paying{text-align:center;padding:46px 10px 40px}
+  .spin{width:46px;height:46px;margin:0 auto 18px;border-radius:50%;border:4px solid rgba(209,176,109,.25);border-top-color:var(--gold);animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .pay-m{font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:8px}
+  .paying .st-tx{font-size:16px;margin-top:10px}
+  .pay-sum{font-size:28px;font-weight:800;color:var(--knafeh-deep);margin:8px 0}
+  .paying .st-sub{font-size:12.5px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -716,10 +735,34 @@ function optText(it, sel, l){
   return (it.o || []).filter(k => visible(k, sel) && (sel[k] || []).length)
     .flatMap(k => sel[k].filter(v => SILENT[k] !== v).map(v => GROUPS[k].v[v][l] + (GROUPS[k].v[v][3] ? ` (+${GROUPS[k].v[v][3]}₪)` : "")));
 }
-let form = {name:"", phone:"", note:""};
+let form = {name:"", phone:"", note:"", pay:""};
+/* payment methods: [id, icon, he, ar, en] */
+const PAYS = [
+  ["apple", "", "Apple Pay", "Apple Pay", "Apple Pay"],
+  ["google", "G", "Google Pay", "Google Pay", "Google Pay"],
+  ["card", "💳", "כרטיס אשראי", "بطاقة ائتمان", "Credit card"],
+  ["bit", "bit", "ביט", "بيت", "Bit"]
+];
+const PT = {
+  he:{title:"אמצעי תשלום", go:"לתשלום", proc:"מאשרים את התשלום…", demoPay:"ניסיון · לא מחויב כסף", paid:"שולם", cardNote:"ייפתח עמוד תשלום מאובטח של חברת הסליקה", bitNote:"ייפתח ביט לאישור התשלום", walletNote:"אישור בטביעת אצבע / Face ID"},
+  ar:{title:"طريقة الدفع", go:"للدفع", proc:"عم نأكّد الدفع…", demoPay:"تجربة · ما في خصم مصاري", paid:"مدفوع", cardNote:"رح تنفتح صفحة دفع آمنة تبع شركة السليقة", bitNote:"رح ينفتح بيت لتأكيد الدفع", walletNote:"تأكيد بالبصمة / Face ID"},
+  en:{title:"Payment method", go:"Pay", proc:"Confirming payment…", demoPay:"Demo · no money is charged", paid:"Paid", cardNote:"A secure payment page of the payment company will open", bitNote:"Bit will open to approve the payment", walletNote:"Confirm with fingerprint / Face ID"}
+};
+const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent) && "ontouchend" in document || /iPhone|iPad/.test(navigator.userAgent);
+const defaultPay = () => isApple ? "apple" : /Android/.test(navigator.userAgent) ? "google" : "card";
+const payName = (id, l) => { const p = PAYS.find(x => x[0] === id); return p ? p[2 + l] : ""; };
 function openCart(){
   sheet.dataset.mode = "cart"; drawCart();
   sheet.classList.add("open"); sheetBg.classList.add("open"); sheet.scrollTop = 0;
+}
+function payBlock(){
+  const l = L(), pt = PT[lang];
+  if (!form.pay) form.pay = defaultPay();
+  const note = form.pay === "card" ? pt.cardNote : form.pay === "bit" ? pt.bitNote : pt.walletNote;
+  return `<div class="pay"><div class="gt">${esc(pt.title)}</div><div class="pay-opts">` +
+    PAYS.filter(p => !(p[0] === "apple" && !isApple && form.pay !== "apple") ).map(p =>
+      `<button type="button" class="pay-o pay-${p[0]}${form.pay === p[0] ? " on" : ""}" data-pay="${p[0]}" aria-pressed="${form.pay === p[0]}"><span class="pi">${esc(p[1])}</span><span>${esc(p[2 + l])}</span></button>`
+    ).join("") + `</div><div class="pay-note">${esc(note)}</div></div>`;
 }
 function drawCart(){
   const u = UI[lang], t = T(), l = L(), {sum} = cartTotals();
@@ -737,7 +780,8 @@ function drawCart(){
       `<div class="fields"><input id="fName" placeholder="${esc(t.name)}" value="${esc(form.name)}" autocomplete="name">` +
       `<input id="fPhone" placeholder="${esc(t.phone)}" value="${esc(form.phone)}" inputmode="tel" autocomplete="tel">` +
       `<textarea id="fNote" rows="2" placeholder="${esc(t.note)}">${esc(form.note)}</textarea></div>` +
-      `<button type="button" class="add-go send">${esc(t.send)} · ${sum}${u.cur}</button>` +
+      payBlock() +
+      `<button type="button" class="add-go send">${esc(PT[lang].go)} · ${sum}${u.cur}</button>` +
       `<div class="sheet-note">${esc(t.demo)}</div>` : "");
 }
 sheet.addEventListener("input", e => {
@@ -753,10 +797,16 @@ sheet.addEventListener("click", e => {
       if (ln.q <= 0) cart.splice(+lq.dataset.x, 1);
       saveCart(); updateBar(); const y = sheet.scrollTop; drawCart(); sheet.scrollTop = y;
       if (!cart.length) closeSheet();
+    } else if (e.target.closest(".pay-o")) {
+      form.pay = e.target.closest(".pay-o").dataset.pay;
+      const y = sheet.scrollTop; drawCart(); sheet.scrollTop = y;
     } else if (e.target.closest(".send")) {
       unlockSound();
-      const o = placeOrder();
-      sheet.dataset.mode = "status"; drawStatus(o.no); sheet.scrollTop = 0;
+      sheet.dataset.mode = "paying"; drawPaying(); sheet.scrollTop = 0;
+      setTimeout(() => {
+        const o = placeOrder();
+        sheet.dataset.mode = "status"; drawStatus(o.no); sheet.scrollTop = 0;
+      }, 1600);
     }
   } else if (sheet.dataset.mode === "status") {
     if (e.target.closest(".new-order")) closeSheet();
@@ -772,7 +822,7 @@ function placeOrder(){
   const orders = loadOrders(), {sum} = cartTotals();
   const no = (orders.reduce((m, o) => Math.max(m, o.no), 0) || 0) + 1;
   const lines = cart.map(ln => { const it = itemOf(ln); return it && {q: ln.q, n: it.n, o: [0,1,2].map(l => optText(it, ln.s, l)), p: unitPrice(it, ln.s) * ln.q}; }).filter(Boolean);
-  const o = {no, t: Date.now(), name: form.name.trim(), phone: form.phone.trim(), note: form.note.trim(), total: sum, lines, status: "new"};
+  const o = {no, t: Date.now(), name: form.name.trim(), phone: form.phone.trim(), note: form.note.trim(), total: sum, lines, status: "new", pay: form.pay || defaultPay()};
   orders.push(o); saveOrders(orders);
   try { localStorage.setItem(MY_KEY, String(no)); } catch(e){}
   cart = []; saveCart(); form.note = ""; updateBar(); updatePill();
@@ -783,6 +833,11 @@ const ST = {
   ar:{prep:"وصل طلبك وعم يتحضّر", ready:"طلبك جاهز! تفضّل عالكاونتر 🙂", done:"استلمت طلبك. صحتين!", wait:"خلّي الصفحة مفتوحة، رح نحكيلك هون لما يجهز", order:"طلب", staff:"شاشة المحل (تجربة)"},
   en:{prep:"Order received, being prepared", ready:"Your order is ready! Please come to the counter 🙂", done:"Order collected. Enjoy!", wait:"Keep this page open, we'll tell you here when it's ready", order:"Order", staff:"Kitchen screen (demo)"}
 };
+function drawPaying(){
+  const l = L(), pt = PT[lang], {sum} = cartTotals();
+  sheetIn.innerHTML = `<div class="paying"><div class="spin"></div><div class="pay-m pay-${form.pay}"><span class="pi">${esc((PAYS.find(p => p[0] === form.pay) || PAYS[2])[1])}</span> ${esc(payName(form.pay, l))}</div>` +
+    `<div class="st-tx">${esc(pt.proc)}</div><div class="pay-sum">${sum}${UI[lang].cur}</div><div class="st-sub">${esc(pt.demoPay)}</div></div>`;
+}
 function drawStatus(no){
   const o = loadOrders().find(x => x.no === no); if (!o) { closeSheet(); return; }
   const t = T(), s = ST[lang], l = L(), d = new Date(o.t);
@@ -800,9 +855,9 @@ function drawStatus(no){
       `<div class="tk-hr"></div>` +
       (o.note ? `<div class="tk-note">הערה: ${esc(o.note)}</div><div class="tk-hr"></div>` : "") +
       `<div class="tk-line tk-total"><span>סה״כ</span><span>${o.total}₪</span></div>` +
-      `<div class="tk-c tk-pay">תשלום: Apple Pay · ניסיון</div>` +
+      `<div class="tk-c tk-pay">תשלום: ${esc(payName(o.pay || "card", 0))} · שולם ✓ (ניסיון)</div>` +
     `</div>` +
-    `<div class="sheet-note">${esc(t.ticket)} · ${esc(t.pay)}: ${esc(t.payDemo)}</div>` +
+    `<div class="sheet-note">${esc(t.ticket)} · ${esc(PT[lang].paid)}: ${esc(payName(o.pay || "card", l))} (${esc(PT[lang].demoPay)})</div>` +
     `<div class="tk-btns"><button type="button" class="add-go new-order">${esc(t.newOrder)}</button><a class="ghost staff-link" href="staff/" target="_blank" rel="noopener">${esc(s.staff)}</a></div>`;
 }
 

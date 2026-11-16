@@ -40,6 +40,7 @@
   .ln .nm{font-weight:700;display:flex;justify-content:space-between;gap:8px}
   .ln .op{font-size:13.5px;color:var(--muted);padding-inline-start:12px}
   .note{font-size:14px;background:rgba(209,176,109,.12);border-radius:10px;padding:7px 10px}
+  .paid{font-size:12px;font-weight:800;color:#B9E0A5;background:rgba(127,176,105,.2);border-radius:999px;padding:2px 8px;margin-inline-start:8px}
   .tot{display:flex;justify-content:space-between;font-weight:800;border-top:1px solid var(--line);padding-top:8px}
   .acts{display:flex;gap:8px;margin-top:4px}
   .acts button{flex:1;border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:800}
@@ -74,7 +75,7 @@ function draw(){
       ${o.name || o.phone ? `<div class="who">${esc(o.name)}${o.phone ? ` · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>` : ""}</div>` : ""}
       ${o.lines.map(x => `<div class="ln"><div class="nm"><span>${x.q}× ${esc(x.n[0])}</span><span>${x.p}₪</span></div>${x.o[0].map(v => `<div class="op">• ${esc(v)}</div>`).join("")}</div>`).join("")}
       ${o.note ? `<div class="note">הערה: ${esc(o.note)}</div>` : ""}
-      <div class="tot"><span>סה״כ</span><span>${o.total}₪</span></div>
+      <div class="tot"><span>סה״כ ${o.pay ? `<small class="paid">שולם · مدفوع · ${esc(({apple:"Apple Pay",google:"Google Pay",card:"אשראי",bit:"ביט"})[o.pay] || o.pay)}</small>` : ""}</span><span>${o.total}₪</span></div>
       <div class="acts">${o.status === "ready"
         ? `<button type="button" class="dn" data-no="${o.no}" data-to="done">נאסף · استلم</button><button type="button" class="undo" data-no="${o.no}" data-to="new">↩</button>`
         : `<button type="button" class="rdy" data-no="${o.no}" data-to="ready">מוכן ✅ جاهز</button>`}</div>
