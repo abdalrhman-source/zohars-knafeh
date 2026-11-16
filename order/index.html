@@ -295,6 +295,9 @@
   body.has-pill{padding-bottom:84px}
   body.has-pill.has-cart{padding-bottom:140px}
   @keyframes pulse{50%{transform:translateX(-50%) scale(1.03)}}
+
+  .item[data-c]:not(.off),.drink[data-c]:not(.off),.pop[data-c]{cursor:pointer;-webkit-tap-highlight-color:rgba(209,176,109,.15)}
+  .item[data-c]:not(.off):active,.drink[data-c]:not(.off):active,.pop[data-c]:active{transform:scale(.99)}
 </style>
 </head>
 <body>
@@ -464,8 +467,8 @@ function render(){
 
   let html = `<section id="popular"><div class="sec-head"><h2>${esc(u.popular)}</h2></div><div class="strip">` +
     POPULAR.map(([cid, i]) => {
-      const c = MENU.find(m => m.id === cid), it = c.items[i];
-      return `<div class="pop">${photo(it.img, c.emoji, it.n[l])}<div class="tx"><div class="nm">${esc(it.n[l])}</div><div class="pr">${it.p}${u.cur}</div></div></div>`;
+      const c = MENU.find(m => m.id === cid), it = c.items[i], ci = MENU.indexOf(c);
+      return `<div class="pop" data-c="${ci}" data-i="${i}">${photo(it.img, c.emoji, it.n[l])}<div class="tx"><div class="nm">${esc(it.n[l])}</div><div class="pr">${it.p}${u.cur}</div></div></div>`;
     }).join("") + `</div></section>`;
 
   MENU.forEach((c, ci) => {
@@ -623,10 +626,19 @@ const _baseRender = render;
 render = function(){ _baseRender(); decorate(); if (typeof updatePill === 'function') updatePill(); };
 
 document.getElementById("menu").addEventListener("click", e => {
-  const b = e.target.closest(".addbtn"); if (!b) return;
-  const c = +b.dataset.c, i = +b.dataset.i, it = MENU[c].items[i];
-  if (!it.o || !it.o.length) { addLine(c, i, {}, 1); flash(b); }
-  else openOrder(c, i);
+  const b = e.target.closest(".addbtn");
+  if (b) {
+    const c = +b.dataset.c, i = +b.dataset.i, it = MENU[c].items[i];
+    if (!it.o || !it.o.length) { addLine(c, i, {}, 1); flash(b); }
+    else openOrder(c, i);
+    return;
+  }
+  /* tapping the card itself opens the item, ready to add */
+  const card = e.target.closest(".item[data-c], .drink[data-c], .pop[data-c]");
+  if (!card || e.target.closest("a")) return;
+  const c = +card.dataset.c, i = +card.dataset.i, it = MENU[c] && MENU[c].items[i];
+  if (!it || it.off) return;
+  openOrder(c, i);
 });
 function flash(b){ b.classList.add("done"); setTimeout(() => b.classList.remove("done"), 700); }
 
@@ -657,7 +669,7 @@ function addLine(c, i, sel, q){
 let cur = null;
 function openOrder(c, i){
   const it = MENU[c].items[i], sel = {};
-  it.o.forEach(k => { if (RULES[k] && RULES[k].def !== undefined) sel[k] = [RULES[k].def]; });
+  (it.o || []).forEach(k => { if (RULES[k] && RULES[k].def !== undefined) sel[k] = [RULES[k].def]; });
   cur = {c, i, sel, q: 1};
   drawOrder();
   sheet.classList.add("open"); sheetBg.classList.add("open"); sheet.scrollTop = 0;
@@ -667,7 +679,7 @@ function drawOrder(){
   const miss = missingGroups(it, sel), total = unitPrice(it, sel) * cur.q;
   sheetIn.innerHTML =
     `<div class="sheet-head">${photo(it.img, c.emoji, it.n[l])}<div><div class="nm">${esc(it.n[l])}</div>${price(it.p)}</div><button type="button" class="sheet-close" aria-label="close">×</button></div>` +
-    it.o.filter(k => visible(k, sel)).map(k => {
+    (it.o || []).filter(k => visible(k, sel)).map(k => {
       const g = GROUPS[k], r = RULES[k] || {}, req = (r.min || 0) > 0;
       const tag = req ? `<span class="req">${esc(t.req)}</span>` : `<span>${g.max > 1 ? esc(t.upTo) + g.max : esc(t.opt)}</span>`;
       return `<div class="grp"><div class="gt">${esc(g.t[l])}${tag}</div><div class="vals">` +
@@ -693,7 +705,7 @@ sheet.addEventListener("click", e => {
     const y = sheet.scrollTop; drawOrder(); sheet.scrollTop = y;
   } else if (go && !go.disabled) {
     const it = MENU[cur.c].items[cur.i], clean = {};
-    it.o.forEach(k => { if (visible(k, cur.sel) && (cur.sel[k] || []).length) clean[k] = [...cur.sel[k]].sort((a, b) => a - b); });
+    (it.o || []).forEach(k => { if (visible(k, cur.sel) && (cur.sel[k] || []).length) clean[k] = [...cur.sel[k]].sort((a, b) => a - b); });
     addLine(cur.c, cur.i, clean, cur.q);
     cur = null; closeSheet();
   }

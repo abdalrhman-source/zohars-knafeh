@@ -395,8 +395,8 @@ function render(){
 
   let html = `<section id="popular"><div class="sec-head"><h2>${esc(u.popular)}</h2></div><div class="strip">` +
     POPULAR.map(([cid, i]) => {
-      const c = MENU.find(m => m.id === cid), it = c.items[i];
-      return `<div class="pop">${photo(it.img, c.emoji, it.n[l])}<div class="tx"><div class="nm">${esc(it.n[l])}</div><div class="pr">${it.p}${u.cur}</div></div></div>`;
+      const c = MENU.find(m => m.id === cid), it = c.items[i], ci = MENU.indexOf(c);
+      return `<div class="pop" data-c="${ci}" data-i="${i}">${photo(it.img, c.emoji, it.n[l])}<div class="tx"><div class="nm">${esc(it.n[l])}</div><div class="pr">${it.p}${u.cur}</div></div></div>`;
     }).join("") + `</div></section>`;
 
   MENU.forEach((c, ci) => {
