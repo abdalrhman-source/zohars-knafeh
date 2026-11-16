@@ -3,26 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2E2D32">
 <title>הכנאפה של זוהר · תפריט</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --cream:#F5F3EE;
-    --paper:#FFFFFF;
-    --ink:#2B2A2E;
-    --muted:#6D6B71;
-    --line:#E6E2D9;
-    --knafeh:#444348;
-    --knafeh-deep:#8C6B22;
+    --cream:#2E2D32;
+    --paper:#3A393F;
+    --ink:#F2EFE8;
+    --muted:#ABA8B0;
+    --line:#4B4A51;
+    --knafeh:#D1B06D;
+    --knafeh-deep:#DDBF7C;
     --syrup:#D1B06D;
     --pistachio:#D1B06D;
     --gold:#D1B06D;
-    --gold-soft:#F6F0E1;
-    --shadow:0 1px 2px rgba(43,42,46,.06),0 6px 18px rgba(43,42,46,.07);
+    --gold-soft:rgba(209,176,109,.13);
+    --shadow:0 1px 2px rgba(0,0,0,.25),0 6px 18px rgba(0,0,0,.22);
     --radius:18px;
   }
+  :root{color-scheme:dark}
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth;scroll-padding-top:76px}
   body{
@@ -62,7 +64,7 @@
     font:inherit;font-size:13px;font-weight:700;color:#fff;background:none;border:0;
     padding:5px 11px;border-radius:999px;cursor:pointer;
   }
-  .langs button[aria-pressed="true"]{background:#fff;color:var(--knafeh-deep)}
+  .langs button[aria-pressed="true"]{background:var(--gold);color:#2B2A2E}
   .brand{margin-top:40px;display:flex;align-items:center;gap:16px}
   .logo{flex:none;width:clamp(92px,24vw,120px);height:auto;aspect-ratio:1/1;border-radius:50%;box-shadow:0 6px 20px rgba(0,0,0,.35)}
   .brand h1{font-size:clamp(34px,8vw,52px);font-weight:800;line-height:1.05;letter-spacing:-.5px}
@@ -89,13 +91,14 @@
     padding:8px 14px;border-radius:999px;background:var(--paper);border:1px solid var(--line);
     
   }
-  .catnav a.active{background:var(--knafeh);border-color:var(--knafeh);color:#fff;box-shadow:inset 0 -2px 0 var(--gold)}
+  .catnav a.active{background:var(--knafeh);border-color:var(--knafeh);color:#2B2A2E}
 
   /* ---------- Sections ---------- */
   main{padding:22px 0 36px}
   section{margin-bottom:30px}
   .sec-head{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
   .sec-head h2{font-size:23px;font-weight:800;letter-spacing:-.2px}
+  .sec-head h2::before{content:"\25C6";color:var(--gold);font-size:.5em;vertical-align:middle;margin-inline-end:8px;position:relative;top:-2px}
   .sec-head .count{font-size:13px;color:var(--muted);font-weight:500}
 
   /* Popular strip */
@@ -146,7 +149,7 @@
   .drink .vol{font-size:12.5px;color:var(--muted);margin-inline-start:6px;font-weight:500}
 
   /* Info */
-  .info{background:#3A393E;color:#EEEBE5;border:1px solid var(--gold);box-shadow:inset 0 0 0 4px #3A393E,inset 0 0 0 5px rgba(209,176,109,.35);border-radius:var(--radius);padding:20px;display:grid;gap:18px}
+  .info{background:#242328;color:#EEEBE5;border:1px solid var(--gold);box-shadow:inset 0 0 0 4px #242328,inset 0 0 0 5px rgba(209,176,109,.35);border-radius:var(--radius);padding:20px;display:grid;gap:18px}
   .info h3{font-size:14px;font-weight:800;color:var(--syrup);margin-bottom:8px;letter-spacing:.3px}
   .hours{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;font-size:14.5px}
   .hours .today{color:#fff;font-weight:800}
@@ -176,13 +179,13 @@
   /* ---------- Options button & sheet ---------- */
   .optbtn{
     font:inherit;font-size:12.5px;font-weight:700;color:var(--knafeh-deep);
-    background:var(--gold-soft);border:1px solid #E4D3A8;border-radius:999px;padding:4px 10px;cursor:pointer;
+    background:var(--gold-soft);border:1px solid rgba(209,176,109,.45);border-radius:999px;padding:4px 10px;cursor:pointer;
   }
-  .sheet-bg{position:fixed;inset:0;background:rgba(25,25,28,.5);z-index:50;display:none}
+  .sheet-bg{position:fixed;inset:0;background:rgba(10,10,12,.6);z-index:50;display:none}
   .sheet{
     position:fixed;left:0;right:0;bottom:0;z-index:51;background:var(--paper);
     border-radius:22px 22px 0 0;max-height:84vh;overflow:auto;display:none;
-    box-shadow:0 -8px 30px rgba(25,25,28,.25);padding:0 0 calc(18px + env(safe-area-inset-bottom));
+    box-shadow:0 -8px 30px rgba(0,0,0,.5);border-top:2px solid var(--gold);padding:0 0 calc(18px + env(safe-area-inset-bottom));
   }
   .sheet.open,.sheet-bg.open{display:block}
   .sheet-in{max-width:760px;margin:0 auto;padding:0 18px}
@@ -190,7 +193,7 @@
   .sheet-head .ph{flex:0 0 58px;height:58px;border-radius:12px}
   .sheet-head .nm{font-size:18px;font-weight:800;line-height:1.25}
   .sheet-head .price{font-size:15px}
-  .sheet-close{margin-inline-start:auto;font:inherit;font-size:22px;line-height:1;width:38px;height:38px;border-radius:50%;border:0;background:#EFECE6;color:var(--ink);cursor:pointer;flex:none}
+  .sheet-close{margin-inline-start:auto;font:inherit;font-size:22px;line-height:1;width:38px;height:38px;border-radius:50%;border:0;background:#4B4A51;color:var(--ink);cursor:pointer;flex:none}
   .grp{padding:14px 0;border-bottom:1px dashed var(--line)}
   .grp:last-child{border-bottom:0}
   .gt{font-size:15px;font-weight:800;margin-bottom:9px}
