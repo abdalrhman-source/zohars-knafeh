@@ -402,12 +402,12 @@ function render(){
   MENU.forEach((c, ci) => {
     html += `<section id="${c.id}"><div class="sec-head"><h2>${esc(c.t[l])}</h2><span class="count">${c.items.length} ${esc(u.items)}</span></div>`;
     if (c.compact){
-      html += `<div class="drinks">` + c.items.map(it =>
-        `<div class="drink${it.off?" off":""}"><div><span class="nm">${esc(it.n[l])}</span><span class="vol">${esc(it.v[l])}</span></div><div class="dr-r">${offB(it)}${price(it.p)}</div></div>`
+      html += `<div class="drinks">` + c.items.map((it, ii) =>
+        `<div class="drink${it.off?" off":""}" data-c="${ci}" data-i="${ii}"><div><span class="nm">${esc(it.n[l])}</span><span class="vol">${esc(it.v[l])}</span></div><div class="dr-r">${offB(it)}${price(it.p)}</div></div>`
       ).join("") + `</div>`;
     } else {
       html += `<div class="list">` + c.items.map((it, ii) =>
-        `<article class="item${it.off?" off":""}">${photo(it.img, c.emoji, it.n[l])}<div class="body"><div class="nm">${esc(it.n[l])}</div>${it.d ? `<div class="ds">${esc(it.d[l])}</div>` : ""}<div class="bottom">${price(it.p)}${offB(it)}${it.pop ? `<span class="badge">${esc(u.badge)}</span>` : ""}${it.o.length ? `<button type="button" class="optbtn" data-c="${ci}" data-i="${ii}">+ ${esc(u.opts)}</button>` : ""}</div></div>${ings(it.g)}</article>`
+        `<article class="item${it.off?" off":""}" data-c="${ci}" data-i="${ii}">${photo(it.img, c.emoji, it.n[l])}<div class="body"><div class="nm">${esc(it.n[l])}</div>${it.d ? `<div class="ds">${esc(it.d[l])}</div>` : ""}<div class="bottom">${price(it.p)}${offB(it)}${it.pop ? `<span class="badge">${esc(u.badge)}</span>` : ""}${it.o.length ? `<button type="button" class="optbtn" data-c="${ci}" data-i="${ii}">+ ${esc(u.opts)}</button>` : ""}</div></div>${ings(it.g)}</article>`
       ).join("") + `</div>`;
     }
     html += `</section>`;
@@ -483,6 +483,7 @@ document.querySelectorAll(".langs button").forEach(b => b.addEventListener("clic
   closeSheet();
   render();
 }));
+
 
 render();
 setInterval(updateStatus, 60000);
