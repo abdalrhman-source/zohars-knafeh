@@ -317,6 +317,11 @@
   .paying .st-tx{font-size:16px;margin-top:10px}
   .pay-sum{font-size:28px;font-weight:800;color:var(--knafeh-deep);margin:8px 0}
   .paying .st-sub{font-size:12.5px;color:var(--muted)}
+  .bitbox{margin-top:12px;padding:14px;border-radius:14px;text-align:center;background:rgba(15,184,194,.12);border:1px solid rgba(15,184,194,.55)}
+  .bb-line{font-size:14.5px}
+  .bb-line b{color:var(--knafeh-deep)}
+  .bb-phone{font-size:26px;font-weight:800;letter-spacing:1px;margin:6px 0 8px}
+  .bb-copy{font:inherit;font-size:14px;font-weight:800;padding:9px 18px;border-radius:12px;border:0;background:#0FB8C2;color:#fff;cursor:pointer}
 </style>
 </head>
 <body>
@@ -743,10 +748,11 @@ const PAYS = [
   ["card", "💳", "כרטיס אשראי", "بطاقة ائتمان", "Credit card"],
   ["bit", "bit", "ביט", "بيت", "Bit"]
 ];
+const BIT_PHONE = "052-8823325";
 const PT = {
-  he:{title:"אמצעי תשלום", go:"לתשלום", proc:"מאשרים את התשלום…", demoPay:"ניסיון · לא מחויב כסף", paid:"שולם", cardNote:"ייפתח עמוד תשלום מאובטח של חברת הסליקה", bitNote:"ייפתח ביט לאישור התשלום", walletNote:"אישור בטביעת אצבע / Face ID"},
-  ar:{title:"طريقة الدفع", go:"للدفع", proc:"عم نأكّد الدفع…", demoPay:"تجربة · ما في خصم مصاري", paid:"مدفوع", cardNote:"رح تنفتح صفحة دفع آمنة تبع شركة السليقة", bitNote:"رح ينفتح بيت لتأكيد الدفع", walletNote:"تأكيد بالبصمة / Face ID"},
-  en:{title:"Payment method", go:"Pay", proc:"Confirming payment…", demoPay:"Demo · no money is charged", paid:"Paid", cardNote:"A secure payment page of the payment company will open", bitNote:"Bit will open to approve the payment", walletNote:"Confirm with fingerprint / Face ID"}
+  he:{title:"אמצעי תשלום", go:"לתשלום", proc:"מאשרים את התשלום…", demoPay:"ניסיון · לא מחויב כסף", paid:"שולם", cardNote:"ייפתח עמוד תשלום מאובטח של חברת הסליקה", bitNote:"מעבירים בביט למספר של העסק, והצוות מאשר את קבלת התשלום", bitDo:"העבירו", bitTo:"בביט למספר", copy:"העתקת המספר", copied:"הועתק ✓", bitWait:"ההזמנה התקבלה · ממתינים לאישור התשלום בביט", bitSend:"שליחת ההזמנה", bitPending:"ממתין לאישור", walletNote:"אישור בטביעת אצבע / Face ID"},
+  ar:{title:"طريقة الدفع", go:"للدفع", proc:"عم نأكّد الدفع…", demoPay:"تجربة · ما في خصم مصاري", paid:"مدفوع", cardNote:"رح تنفتح صفحة دفع آمنة تبع شركة السليقة", bitNote:"بتحوّل ببيت لرقم المحل، والمحل بيأكّد إنه وصل الدفع", bitDo:"حوّل", bitTo:"ببيت للرقم", copy:"نسخ الرقم", copied:"انسخ ✓", bitWait:"وصل طلبك · بانتظار تأكيد الدفع ببيت", bitSend:"إرسال الطلب", bitPending:"بانتظار التأكيد", walletNote:"تأكيد بالبصمة / Face ID"},
+  en:{title:"Payment method", go:"Pay", proc:"Confirming payment…", demoPay:"Demo · no money is charged", paid:"Paid", cardNote:"A secure payment page of the payment company will open", bitNote:"Transfer with Bit to the shop's number; the staff confirms the payment", bitDo:"Transfer", bitTo:"with Bit to", copy:"Copy number", copied:"Copied ✓", bitWait:"Order received · waiting for the Bit payment to be confirmed", bitSend:"Send order", bitPending:"Awaiting confirmation", walletNote:"Confirm with fingerprint / Face ID"}
 };
 const isApple = /iPhone|iPad|Macintosh/.test(navigator.userAgent) && "ontouchend" in document || /iPhone|iPad/.test(navigator.userAgent);
 const defaultPay = () => isApple ? "apple" : /Android/.test(navigator.userAgent) ? "google" : "card";
@@ -755,6 +761,11 @@ function openCart(){
   sheet.dataset.mode = "cart"; drawCart();
   sheet.classList.add("open"); sheetBg.classList.add("open"); sheet.scrollTop = 0;
 }
+function bitBox(sum){
+  const pt = PT[lang];
+  return `<div class="bitbox"><div class="bb-line">${esc(pt.bitDo)} <b>${sum}${UI[lang].cur}</b> ${esc(pt.bitTo)}</div>` +
+    `<div class="bb-phone" dir="ltr">${BIT_PHONE}</div><button type="button" class="bb-copy">${esc(pt.copy)}</button></div>`;
+}
 function payBlock(){
   const l = L(), pt = PT[lang];
   if (!form.pay) form.pay = defaultPay();
@@ -762,7 +773,7 @@ function payBlock(){
   return `<div class="pay"><div class="gt">${esc(pt.title)}</div><div class="pay-opts">` +
     PAYS.filter(p => !(p[0] === "apple" && !isApple && form.pay !== "apple") ).map(p =>
       `<button type="button" class="pay-o pay-${p[0]}${form.pay === p[0] ? " on" : ""}" data-pay="${p[0]}" aria-pressed="${form.pay === p[0]}"><span class="pi">${esc(p[1])}</span><span>${esc(p[2 + l])}</span></button>`
-    ).join("") + `</div><div class="pay-note">${esc(note)}</div></div>`;
+    ).join("") + `</div><div class="pay-note">${esc(note)}</div>${form.pay === "bit" ? bitBox(cartTotals().sum) : ""}</div>`;
 }
 function drawCart(){
   const u = UI[lang], t = T(), l = L(), {sum} = cartTotals();
@@ -781,9 +792,14 @@ function drawCart(){
       `<input id="fPhone" placeholder="${esc(t.phone)}" value="${esc(form.phone)}" inputmode="tel" autocomplete="tel">` +
       `<textarea id="fNote" rows="2" placeholder="${esc(t.note)}">${esc(form.note)}</textarea></div>` +
       payBlock() +
-      `<button type="button" class="add-go send">${esc(PT[lang].go)} · ${sum}${u.cur}</button>` +
+      `<button type="button" class="add-go send">${esc(form.pay === "bit" ? PT[lang].bitSend : PT[lang].go)} · ${sum}${u.cur}</button>` +
       `<div class="sheet-note">${esc(t.demo)}</div>` : "");
 }
+sheet.addEventListener("click", e => {
+  const c = e.target.closest(".bb-copy"); if (!c) return;
+  const done = () => { c.textContent = PT[lang].copied; setTimeout(() => { c.textContent = PT[lang].copy; }, 1500); };
+  try { navigator.clipboard.writeText(BIT_PHONE.replace(/-/g, "")).then(done, done); } catch(err){ done(); }
+});
 sheet.addEventListener("input", e => {
   if (e.target.id === "fName") form.name = e.target.value;
   if (e.target.id === "fPhone") form.phone = e.target.value;
@@ -802,6 +818,7 @@ sheet.addEventListener("click", e => {
       const y = sheet.scrollTop; drawCart(); sheet.scrollTop = y;
     } else if (e.target.closest(".send")) {
       unlockSound();
+      if (form.pay === "bit") { const o = placeOrder(); sheet.dataset.mode = "status"; drawStatus(o.no); sheet.scrollTop = 0; return; }
       sheet.dataset.mode = "paying"; drawPaying(); sheet.scrollTop = 0;
       setTimeout(() => {
         const o = placeOrder();
@@ -822,7 +839,7 @@ function placeOrder(){
   const orders = loadOrders(), {sum} = cartTotals();
   const no = (orders.reduce((m, o) => Math.max(m, o.no), 0) || 0) + 1;
   const lines = cart.map(ln => { const it = itemOf(ln); return it && {q: ln.q, n: it.n, o: [0,1,2].map(l => optText(it, ln.s, l)), p: unitPrice(it, ln.s) * ln.q}; }).filter(Boolean);
-  const o = {no, t: Date.now(), name: form.name.trim(), phone: form.phone.trim(), note: form.note.trim(), total: sum, lines, status: "new", pay: form.pay || defaultPay()};
+  const o = {no, t: Date.now(), name: form.name.trim(), phone: form.phone.trim(), note: form.note.trim(), total: sum, lines, status: "new", pay: form.pay || defaultPay(), paid: (form.pay || defaultPay()) !== "bit"};
   orders.push(o); saveOrders(orders);
   try { localStorage.setItem(MY_KEY, String(no)); } catch(e){}
   cart = []; saveCart(); form.note = ""; updateBar(); updatePill();
@@ -843,9 +860,11 @@ function drawStatus(no){
   const t = T(), s = ST[lang], l = L(), d = new Date(o.t);
   const hh = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   const st = o.status === "ready" ? "ready" : o.status === "done" ? "done" : "prep";
+  const bitWait = o.pay === "bit" && !o.paid && st === "prep";
   sheetIn.innerHTML =
     `<div class="sheet-head"><div class="nm">${esc(s.order)} ${o.no}</div><button type="button" class="sheet-close" aria-label="close">×</button></div>` +
-    `<div class="status ${st}"><div class="st-ic">${st === "ready" ? "✅" : st === "done" ? "🙏" : "⏳"}</div><div class="st-tx">${esc(s[st])}</div>${st === "prep" ? `<div class="st-sub">${esc(s.wait)}</div>` : ""}</div>` +
+    `<div class="status ${st}"><div class="st-ic">${st === "ready" ? "✅" : st === "done" ? "🙏" : "⏳"}</div><div class="st-tx">${esc(bitWait ? PT[lang].bitWait : s[st])}</div>${st === "prep" ? `<div class="st-sub">${esc(s.wait)}</div>` : ""}</div>` +
+    (bitWait ? bitBox(o.total) : "") +
     `<div class="ticket" dir="rtl">` +
       `<div class="tk-c tk-big">הכנאפה של זוהר</div><div class="tk-c">איסוף עצמי · ${hh}</div>` +
       `<div class="tk-c tk-no">הזמנה ${o.no}</div>` +
@@ -855,9 +874,9 @@ function drawStatus(no){
       `<div class="tk-hr"></div>` +
       (o.note ? `<div class="tk-note">הערה: ${esc(o.note)}</div><div class="tk-hr"></div>` : "") +
       `<div class="tk-line tk-total"><span>סה״כ</span><span>${o.total}₪</span></div>` +
-      `<div class="tk-c tk-pay">תשלום: ${esc(payName(o.pay || "card", 0))} · שולם ✓ (ניסיון)</div>` +
+      `<div class="tk-c tk-pay">תשלום: ${esc(payName(o.pay || "card", 0))} · ${o.paid === false ? "ממתין לאישור" : "שולם ✓"} (ניסיון)</div>` +
     `</div>` +
-    `<div class="sheet-note">${esc(t.ticket)} · ${esc(PT[lang].paid)}: ${esc(payName(o.pay || "card", l))} (${esc(PT[lang].demoPay)})</div>` +
+    `<div class="sheet-note">${esc(t.ticket)} · ${esc(o.paid === false ? PT[lang].bitPending : PT[lang].paid)}: ${esc(payName(o.pay || "card", l))}${o.pay === "bit" ? "" : ` (${esc(PT[lang].demoPay)})`}</div>` +
     `<div class="tk-btns"><button type="button" class="add-go new-order">${esc(t.newOrder)}</button><a class="ghost staff-link" href="staff/" target="_blank" rel="noopener">${esc(s.staff)}</a></div>`;
 }
 
