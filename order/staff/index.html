@@ -44,6 +44,13 @@
   .unpaid{font-size:12px;font-weight:800;color:#2B2A2E;background:#E8B04B;border-radius:999px;padding:2px 8px;margin-inline-start:8px}
   .bitok{background:#0FB8C2;color:#fff}
   .ord.wait{border-color:#E8B04B;box-shadow:0 0 0 2px rgba(232,176,75,.35)}
+  .sec{grid-column:1/-1;font-size:17px;font-weight:800;margin-top:4px}
+  .sec small{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-top:2px}
+  .wait-h{color:#E8B04B}
+  .wbadge{background:rgba(232,176,75,.2)!important;color:#E8B04B!important}
+  .wchip b{color:#E8B04B}
+  .hint{font-size:13px;color:#E8B04B}
+  .cancel{background:transparent;border:1px solid #8a4b4b!important;color:#E8A0A0;flex:0 0 auto!important}
   .tot{display:flex;justify-content:space-between;font-weight:800;border-top:1px solid var(--line);padding-top:8px}
   .acts{display:flex;gap:8px;margin-top:4px}
   .acts button{flex:1;border:0;border-radius:12px;padding:12px;font-size:16px;font-weight:800}
@@ -55,7 +62,7 @@
 <body>
 <header>
   <h1>הזמנות · الطلبات <small>הכנאפה של זוהר</small></h1>
-  <div class="counts"><span class="chip">בהכנה · عم يتحضّر <b id="cPrep">0</b></span><span class="chip">מוכן · جاهز <b id="cReady">0</b></span></div>
+  <div class="counts"><span class="chip wchip">ממתין לתשלום · بانتظار الدفع <b id="cWait">0</b></span><span class="chip">בהכנה · عم يتحضّر <b id="cPrep">0</b></span><span class="chip">מוכן · جاهز <b id="cReady">0</b></span></div>
   <button type="button" class="snd" id="snd">🔔 צליל · صوت</button>
 </header>
 <div class="demo">גרסת ניסיון · עובד רק באותו מכשיר שבו נשלחה ההזמנה · نسخة تجربة: بتشتغل بس على نفس الجهاز اللي انبعت منه الطلب</div>
@@ -68,24 +75,42 @@ const save = a => { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch(
 const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); };
 let seen = new Set(load().map(o => o.no)), actx = null;
 
-function draw(){
-  const all = load(), open = all.filter(o => o.status !== "done").sort((a, b) => (a.status === "ready") - (b.status === "ready") || a.no - b.no);
-  document.getElementById("cPrep").textContent = all.filter(o => o.status === "new").length;
-  document.getElementById("cReady").textContent = all.filter(o => o.status === "ready").length;
-  document.getElementById("list").innerHTML = open.length ? open.map(o => `
-    <article class="ord ${o.status === "ready" ? "ready" : o.paid === false ? "wait" : "new"}">
+const PAYN = {apple:"Apple Pay", google:"Google Pay", card:"אשראי", bit:"ביט"};
+function card(o){
+  return `
+    <article class="ord ${o.status === "ready" ? "ready" : "new"}">
       <div class="top"><span class="no">#${o.no}</span><span class="tm">${hhmm(o.t)} · איסוף עצמי</span><span class="badge">${o.status === "ready" ? "מוכן · جاهز" : "בהכנה · عم يتحضّر"}</span></div>
       ${o.name || o.phone ? `<div class="who">${esc(o.name)}${o.phone ? ` · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>` : ""}</div>` : ""}
       ${o.lines.map(x => `<div class="ln"><div class="nm"><span>${x.q}× ${esc(x.n[0])}</span><span>${x.p}₪</span></div>${x.o[0].map(v => `<div class="op">• ${esc(v)}</div>`).join("")}</div>`).join("")}
       ${o.note ? `<div class="note">הערה: ${esc(o.note)}</div>` : ""}
-      <div class="tot"><span>סה״כ ${o.pay ? (o.paid === false
-        ? `<small class="unpaid">ממתין לביט · بانتظار بيت</small>`
-        : `<small class="paid">שולם · مدفوع · ${esc(({apple:"Apple Pay",google:"Google Pay",card:"אשראי",bit:"ביט"})[o.pay] || o.pay)}</small>`) : ""}</span><span>${o.total}₪</span></div>
-      ${o.paid === false ? `<div class="acts"><button type="button" class="bitok" data-no="${o.no}" data-paid="1">התקבל בביט ✓ · وصل ببيت</button></div>` : ""}
+      <div class="tot"><span>סה״כ ${o.pay ? `<small class="paid">שולם · مدفوع · ${esc(PAYN[o.pay] || o.pay)}</small>` : ""}</span><span>${o.total}₪</span></div>
       <div class="acts">${o.status === "ready"
         ? `<button type="button" class="dn" data-no="${o.no}" data-to="done">נאסף · استلم</button><button type="button" class="undo" data-no="${o.no}" data-to="new">↩</button>`
         : `<button type="button" class="rdy" data-no="${o.no}" data-to="ready">מוכן ✅ جاهز</button>`}</div>
-    </article>`).join("") : `<div class="empty">אין הזמנות פתוחות · ما في طلبات</div>`;
+    </article>`;
+}
+/* unpaid orders: only the number, the customer and the amount; the kitchen does not see them */
+function waitCard(o){
+  return `
+    <article class="ord wait">
+      <div class="top"><span class="no">#${o.no}</span><span class="tm">${hhmm(o.t)}</span><span class="badge wbadge">ממתין לתשלום · بانتظار الدفع</span></div>
+      ${o.name || o.phone ? `<div class="who">${esc(o.name)}${o.phone ? ` · <a href="tel:${esc(o.phone)}">${esc(o.phone)}</a>` : ""}</div>` : ""}
+      <div class="tot"><span>${esc(PAYN[o.pay] || "")} · ${o.lines.reduce((n, x) => n + x.q, 0)} פריטים</span><span>${o.total}₪</span></div>
+      <div class="hint">בדקו בביט שהגיעו ${o.total}₪ · شوفوا ببيت إنه وصلوا ${o.total}₪</div>
+      <div class="acts"><button type="button" class="bitok" data-no="${o.no}" data-paid="1">התקבל ✓ · وصل</button><button type="button" class="cancel" data-no="${o.no}" data-to="cancelled">ביטול · إلغاء</button></div>
+    </article>`;
+}
+function draw(){
+  const all = load(), live = all.filter(o => o.status !== "done" && o.status !== "cancelled");
+  const waiting = live.filter(o => o.paid === false).sort((a, b) => a.no - b.no);
+  const kitchen = live.filter(o => o.paid !== false).sort((a, b) => (a.status === "ready") - (b.status === "ready") || a.no - b.no);
+  document.getElementById("cWait").textContent = waiting.length;
+  document.getElementById("cPrep").textContent = kitchen.filter(o => o.status === "new").length;
+  document.getElementById("cReady").textContent = kitchen.filter(o => o.status === "ready").length;
+  document.getElementById("list").innerHTML =
+    (waiting.length ? `<h2 class="sec wait-h">ממתין לתשלום · بانتظار الدفع <small>לא נשלח למטבח עד אישור התשלום · ما بيوصل للمطبخ قبل تأكيد الدفع</small></h2>` + waiting.map(waitCard).join("") : "") +
+    `<h2 class="sec">מטבח · المطبخ</h2>` +
+    (kitchen.length ? kitchen.map(card).join("") : `<div class="empty">אין הזמנות במטבח · ما في طلبات بالمطبخ</div>`);
 }
 document.getElementById("list").addEventListener("click", e => {
   const b = e.target.closest("button[data-no]"); if (!b) return;

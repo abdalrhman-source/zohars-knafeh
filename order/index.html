@@ -322,6 +322,10 @@
   .bb-line b{color:var(--knafeh-deep)}
   .bb-phone{font-size:26px;font-weight:800;letter-spacing:1px;margin:6px 0 8px}
   .bb-copy{font:inherit;font-size:14px;font-weight:800;padding:9px 18px;border-radius:12px;border:0;background:#0FB8C2;color:#fff;cursor:pointer}
+
+  .status.cancelled{background:rgba(232,160,160,.12);border-color:#b86b6b}
+  .status.cancelled .st-tx{color:#F0B3B3}
+  .status-pill.cancel{border-color:#b86b6b;background:#4a3434}
 </style>
 </head>
 <body>
@@ -846,9 +850,9 @@ function placeOrder(){
   return o;
 }
 const ST = {
-  he:{prep:"ההזמנה התקבלה ונמצאת בהכנה", ready:"ההזמנה שלך מוכנה! אפשר לגשת לדלפק 🙂", done:"ההזמנה נאספה. בתיאבון!", wait:"אל תסגרו את הדף, נעדכן כאן כשהיא מוכנה", order:"הזמנה", staff:"מסך המטבח (ניסיון)"},
-  ar:{prep:"وصل طلبك وعم يتحضّر", ready:"طلبك جاهز! تفضّل عالكاونتر 🙂", done:"استلمت طلبك. صحتين!", wait:"خلّي الصفحة مفتوحة، رح نحكيلك هون لما يجهز", order:"طلب", staff:"شاشة المحل (تجربة)"},
-  en:{prep:"Order received, being prepared", ready:"Your order is ready! Please come to the counter 🙂", done:"Order collected. Enjoy!", wait:"Keep this page open, we'll tell you here when it's ready", order:"Order", staff:"Kitchen screen (demo)"}
+  he:{prep:"ההזמנה התקבלה ונמצאת בהכנה", ready:"ההזמנה שלך מוכנה! אפשר לגשת לדלפק 🙂", done:"ההזמנה נאספה. בתיאבון!", cancelled:"ההזמנה בוטלה · התשלום לא התקבל. לשאלות: 08-996-9819", wait:"אל תסגרו את הדף, נעדכן כאן כשהיא מוכנה", order:"הזמנה", staff:"מסך המטבח (ניסיון)"},
+  ar:{prep:"وصل طلبك وعم يتحضّر", ready:"طلبك جاهز! تفضّل عالكاونتر 🙂", done:"استلمت طلبك. صحتين!", cancelled:"انلغى الطلب · ما وصل الدفع. للاستفسار: 08-996-9819", wait:"خلّي الصفحة مفتوحة، رح نحكيلك هون لما يجهز", order:"طلب", staff:"شاشة المحل (تجربة)"},
+  en:{prep:"Order received, being prepared", ready:"Your order is ready! Please come to the counter 🙂", done:"Order collected. Enjoy!", cancelled:"Order cancelled · payment not received. Questions: 08-996-9819", wait:"Keep this page open, we'll tell you here when it's ready", order:"Order", staff:"Kitchen screen (demo)"}
 };
 function drawPaying(){
   const l = L(), pt = PT[lang], {sum} = cartTotals();
@@ -859,11 +863,11 @@ function drawStatus(no){
   const o = loadOrders().find(x => x.no === no); if (!o) { closeSheet(); return; }
   const t = T(), s = ST[lang], l = L(), d = new Date(o.t);
   const hh = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
-  const st = o.status === "ready" ? "ready" : o.status === "done" ? "done" : "prep";
+  const st = o.status === "ready" ? "ready" : o.status === "done" ? "done" : o.status === "cancelled" ? "cancelled" : "prep";
   const bitWait = o.pay === "bit" && !o.paid && st === "prep";
   sheetIn.innerHTML =
     `<div class="sheet-head"><div class="nm">${esc(s.order)} ${o.no}</div><button type="button" class="sheet-close" aria-label="close">×</button></div>` +
-    `<div class="status ${st}"><div class="st-ic">${st === "ready" ? "✅" : st === "done" ? "🙏" : "⏳"}</div><div class="st-tx">${esc(bitWait ? PT[lang].bitWait : s[st])}</div>${st === "prep" ? `<div class="st-sub">${esc(s.wait)}</div>` : ""}</div>` +
+    `<div class="status ${st}"><div class="st-ic">${st === "ready" ? "✅" : st === "done" ? "🙏" : st === "cancelled" ? "✕" : "⏳"}</div><div class="st-tx">${esc(bitWait ? PT[lang].bitWait : s[st])}</div>${st === "prep" ? `<div class="st-sub">${esc(s.wait)}</div>` : ""}</div>` +
     (bitWait ? bitBox(o.total) : "") +
     `<div class="ticket" dir="rtl">` +
       `<div class="tk-c tk-big">הכנאפה של זוהר</div><div class="tk-c">איסוף עצמי · ${hh}</div>` +
@@ -890,8 +894,9 @@ function updatePill(){
   const no = myNo(), o = no && loadOrders().find(x => x.no === no), s = ST[lang];
   if (!o || o.status === "done") { pill.hidden = true; document.body.classList.remove("has-pill"); lastSt = o ? o.status : null; return; }
   pill.hidden = false; document.body.classList.add("has-pill");
-  pill.className = "status-pill " + (o.status === "ready" ? "ready" : "prep");
-  pill.innerHTML = `<span>${o.status === "ready" ? "✅" : "⏳"}</span><span>${esc(s.order)} ${o.no} · ${esc(o.status === "ready" ? s.ready : s.prep)}</span>`;
+  const waitPay = o.pay === "bit" && o.paid === false && o.status === "new";
+  pill.className = "status-pill " + (o.status === "ready" ? "ready" : o.status === "cancelled" ? "cancel" : "prep");
+  pill.innerHTML = `<span>${o.status === "ready" ? "✅" : o.status === "cancelled" ? "✕" : "⏳"}</span><span>${esc(s.order)} ${o.no} · ${esc(o.status === "ready" ? s.ready : o.status === "cancelled" ? s.cancelled : waitPay ? PT[lang].bitWait : s.prep)}</span>`;
   if (lastSt && lastSt !== "ready" && o.status === "ready") alertReady();
   lastSt = o.status;
 }
