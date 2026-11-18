@@ -9,7 +9,8 @@
 /* a mistyped address (capital letters, a missing slash, spaces) still reaches the right page */
 (function () {
   var p = decodeURIComponent(location.pathname).toLowerCase().replace(/\s+/g, "");
-  var base = "/zohars-knafeh/", to = base;
+  // the site lives at knafehzohar.com/ and, as before, at abdalrhman-source.github.io/zohars-knafeh/
+  var base = /github\.io$/.test(location.hostname) ? "/zohars-knafeh/" : "/", to = base;
   if (p.indexOf("staff") > -1) to = base + "order/staff/";
   else if (p.indexOf("order") > -1) to = base + "order/";
   location.replace(to + location.search + location.hash);
@@ -17,5 +18,5 @@
 </script>
 <style>body{background:#2E2D32;color:#F2EFE8;font-family:system-ui,sans-serif;text-align:center;padding:60px 20px}a{color:#D1B06D}</style>
 </head>
-<body><a href="/zohars-knafeh/">הכנאפה של זוהר · كنافة زوهر</a></body>
+<body><a href="/">הכנאפה של זוהר · كنافة زوهر</a></body>
 </html>

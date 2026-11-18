@@ -5,7 +5,7 @@ workers_dev = true
 
 [vars]
 # the shop's own pages that may place orders and use the shop screen
-ALLOWED_ORIGINS = "https://abdalrhman-source.github.io"
+ALLOWED_ORIGINS = "https://abdalrhman-source.github.io,https://knafehzohar.com,https://www.knafehzohar.com"
 # payment methods accepted right now; card / apple / google are added once a payment company is connected
 PAY_METHODS = "bit"
 
