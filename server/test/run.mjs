@@ -168,4 +168,19 @@ await test("kitchen printer: address, printing once, printing again, printer dow
   assert.equal((await call("POST", "/api/staff/printer", { clear: true }, auth)).body.printer, null);
 });
 
+await test("printing on the shop computer: claim once, reprint asked from the phone", async () => {
+  const { token } = (await call("POST", "/api/staff/login", { pin: "482913" }, { ip: "9.9.9.8" })).body;
+  const auth = { Authorization: "Bearer " + token, ip: "77.125.10.20" };
+  now += 3600000;
+  const o = (await call("POST", "/api/orders", { items: [{ id: drinkId, q: 1 }], name: "רנא", pay: "bit" }, { ip: "5.5.5.6" })).body;
+  assert.equal((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body.error, "not_paid");
+  await call("POST", `/api/staff/orders/${o.id}/paid`, {}, auth);
+  assert.deepEqual((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body, { claimed: true, again: false });
+  assert.deepEqual((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body, { claimed: false });
+  assert.equal((await call("POST", `/api/staff/orders/${o.id}/reprint`, {}, auth)).body.ok, true);
+  assert.equal((await call("GET", "/api/staff/orders", undefined, auth)).body.orders.find(x => x.id === o.id).printed, 2);
+  assert.deepEqual((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body, { claimed: true, again: true });
+  assert.equal((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body.claimed, false);
+});
+
 console.log(`\n${passed} tests passed`);

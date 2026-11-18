@@ -44,6 +44,14 @@
   .panel button.sec2{background:transparent;border:1px solid var(--line);color:var(--ink)}
   .panel label{font-size:14px}
   .pmsg{font-size:13.5px;min-height:18px}
+  #printArea{display:none}
+  @media print{
+    @page{margin:0}
+    body>*:not(#printArea){display:none!important}
+    body{background:#fff!important;min-height:0}
+    #printArea{display:block}
+    #printArea img{display:block;width:72mm;max-width:100%;margin:0 auto}
+  }
   .reprint{background:transparent;border:1px solid var(--line)!important;color:var(--ink);flex:0 0 auto!important;padding:12px 14px!important;font-size:15px!important}
   .demo{margin:12px 16px 0;padding:9px 14px;border-radius:12px;background:var(--gold);color:#2B2A2E;font-size:13px;font-weight:700;text-align:center}
   main{padding:14px 16px 40px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));align-items:start}
@@ -103,6 +111,7 @@
   <p>כתובת האינטרנט של המסעדה והפורט שהראוטר מעביר למדפסת · عنوان المحل عالإنترنت والبورت اللي الراوتر بحوّله للطابعة</p>
   <div class="prow"><input type="text" id="phost" placeholder="כתובת · العنوان" autocomplete="off" autocapitalize="off" spellcheck="false"><input type="text" id="pport" placeholder="פורט · البورت" inputmode="numeric" autocomplete="off" style="max-width:140px"></div>
   <div class="prow"><button type="button" id="psave">שמירה · حفظ</button><button type="button" class="sec2" id="pmine">📍 אני במסעדה עכשיו · أنا بالمحل هلأ</button><button type="button" class="sec2" id="ptest">דף ניסיון · ورقة تجربة</button></div>
+  <label class="prow"><input type="checkbox" id="plocal"> 🖥️ המחשב הזה מחובר למדפסת המטבח (הדפסה מהדפדפן) · هاد الجهاز موصول على طابعة المطبخ (طباعة من المتصفح)</label>
   <label class="prow"><input type="checkbox" id="pauto"> הדפסה אוטומטית כשהזמנה משולמת · اطبع لحالها لما الطلبية تندفع</label>
   <div class="pmsg" id="pmsg"></div>
 </section>
@@ -114,6 +123,7 @@
   <div class="lerr" id="lerr"></div>
 </form>
 <main id="list"></main>
+<div id="printArea"></div>
 <script>
 const API = "https://zohars-knafeh-orders.abdalrhmanmanasra11.workers.dev";
 const LIVE = !!API;
@@ -154,6 +164,8 @@ function remoteApi(base){
     async list(){ const j = await req("/api/staff/orders"); setShop(j.open); if ("printer" in j) setPrinter(j.printer); return j.orders; },
     setPrinter: body => req("/api/staff/printer", {method: "POST", body: JSON.stringify(body)}),
     print: body => req("/api/staff/print", {method: "POST", body: JSON.stringify(body)}),
+    reprint: id => req(`/api/staff/orders/${encodeURIComponent(id)}/reprint`, {method: "POST", body: "{}"}),
+    claim: id => req(`/api/staff/orders/${encodeURIComponent(id)}/claim`, {method: "POST", body: "{}"}),
     setOpen: open => req("/api/staff/open", {method: "POST", body: JSON.stringify({open})}),
     act: (id, action) => req(`/api/staff/orders/${encodeURIComponent(id)}/${action}`, {method: "POST", body: "{}"})
   };
@@ -183,7 +195,9 @@ function confirmOpen(next){
 /* ---------- kitchen printer: this screen draws the ticket, the server passes it to the printer ---------- */
 let printer = null, printErr = false, lastPrintErr = "", printRetryAt = 0;
 const printing = new Set();
-const PAUTO_KEY = "zk-print-auto";
+const PAUTO_KEY = "zk-print-auto", PLOCAL_KEY = "zk-print-local";
+/* "this computer prints": the shop computer next to the printer prints through Windows from this page */
+let printLocal = false; try { printLocal = localStorage.getItem(PLOCAL_KEY) === "1"; } catch(e){}
 let autoPrint = true; try { autoPrint = localStorage.getItem(PAUTO_KEY) !== "0"; } catch(e){}
 const prnBtn = document.getElementById("prn"), panel = document.getElementById("ppanel"), pmsg = document.getElementById("pmsg");
 const PERR = {
@@ -198,6 +212,7 @@ const PERR = {
 function setPrinter(p){ printer = p || null; drawPrn(); }
 function drawPrn(){
   prnBtn.hidden = !LIVE || !loginForm.hidden;
+  if (printLocal) { prnBtn.className = "prn ok"; prnBtn.textContent = "🖨️ מדפיס מהמחשב הזה · بيطبع من هاد الجهاز"; return; }
   prnBtn.className = "prn" + (!printer ? "" : printErr ? " err" : " ok");
   prnBtn.textContent = !printer ? "🖨️ חיבור מדפסת · ربط الطابعة" : printErr ? "🖨️ המדפסת לא עונה · الطابعة مش رادّة" : "🖨️ מדפסת ✓ · الطابعة";
 }
@@ -205,6 +220,7 @@ function showPrintErr(){ panel.hidden = false; pmsg.textContent = PERR[lastPrint
 function fillPanel(all){
   if (all !== false) { document.getElementById("phost").value = printer ? printer.host : ""; document.getElementById("pport").value = printer ? printer.port : ""; }
   document.getElementById("pauto").checked = autoPrint;
+  document.getElementById("plocal").checked = printLocal;
 }
 prnBtn.addEventListener("click", () => { panel.hidden = !panel.hidden; if (!panel.hidden) { pmsg.textContent = ""; fillPanel(); } });
 async function savePrinter(body){
@@ -224,18 +240,24 @@ document.getElementById("psave").addEventListener("click", () => savePrinter({ho
 document.getElementById("pmine").addEventListener("click", () => savePrinter({useMyIp: true, port: portVal()}));
 document.getElementById("ptest").addEventListener("click", async () => {
   pmsg.textContent = "…";
+  if (printLocal) { await printHere(null, false); pmsg.textContent = "נשלח למדפסת ✓ · انبعتت للطابعة"; return; }
   pmsg.textContent = await printTicket(null, false) ? "נשלח למדפסת ✓ · انبعتت للطابعة" : (PERR[lastPrintErr] || PERR.other);
+});
+document.getElementById("plocal").addEventListener("change", e => {
+  printLocal = e.target.checked;
+  try { localStorage.setItem(PLOCAL_KEY, printLocal ? "1" : "0"); } catch(err){}
+  drawPrn(); draw(); refresh();
 });
 document.getElementById("pauto").addEventListener("change", e => { autoPrint = e.target.checked; try { localStorage.setItem(PAUTO_KEY, autoPrint ? "1" : "0"); } catch(err){} });
 
-/** Prints one order (or a test page when o is null). again = print it even if it was printed before. */
+/** Prints one order over the internet (or a test page when o is null). again = print it even if it was printed before. */
 async function printTicket(o, again){
   if (!printer) { lastPrintErr = "no_printer"; return false; }
   const key = o ? o.id : "test";
   if (printing.has(key)) return false;
   printing.add(key);
   try {
-    const bytes = await ticketBytes(o, again);
+    const bytes = await ticketBytes(o, again || (o && o.printed === 2));
     const r = await api.print({data: toB64(bytes), id: o ? o.id : undefined, again: again ? true : undefined});
     if (printErr) { printErr = false; drawPrn(); }
     if (o && !r.skipped) o.printed = 1;
@@ -249,16 +271,45 @@ async function printTicket(o, again){
 }
 /* paid orders that reached the kitchen print by themselves while this screen is open */
 async function autoPrintNew(list){
-  if (!LIVE || !printer || !autoPrint || Date.now() < printRetryAt) return;
-  const todo = list.filter(o => o.status === "new" && !o.printed && Date.now() - o.created < 3 * 3600000).sort((a, b) => a.no - b.no);
+  if (!LIVE || !(printLocal || printer) || Date.now() < printRetryAt) return;
+  const t = Date.now();
+  const todo = list.filter(o => (autoPrint && o.status === "new" && !o.printed && t - o.created < 3 * 3600000) || (o.printed === 2 && t - o.created < 12 * 3600000))
+    .sort((a, b) => a.no - b.no);
   for (const o of todo) {
-    if (!(await printTicket(o, false))) { printRetryAt = Date.now() + 30000; break; }
+    const ok = printLocal ? await printLocalOrder(o) : await printTicket(o, false);
+    if (!ok) { printRetryAt = Date.now() + 30000; break; }
   }
+}
+/* printing through this computer's own printer: take the order first, so no other screen prints it too */
+async function printLocalOrder(o){
+  if (printing.has(o.id)) return true;
+  printing.add(o.id);
+  try {
+    const r = await api.claim(o.id);
+    if (r.claimed) await printHere(o, r.again);
+    o.printed = 1;
+    return true;
+  } catch(e){
+    lastPrintErr = e.code || "other";
+    if (e.code === "unauthorized") { api.logout(); showLogin(); }
+    return false;
+  } finally { printing.delete(o.id); }
+}
+/** Prints the ticket picture with the browser; with Chrome's --kiosk-printing it goes straight to the default printer. */
+async function printHere(o, copy){
+  const t = await ticketCanvas(o, copy);
+  const out = document.createElement("canvas"); out.width = PW; out.height = t.h;
+  out.getContext("2d").drawImage(t.c, 0, 0);
+  const area = document.getElementById("printArea"), img = new Image();
+  await new Promise(done => { img.onload = done; img.onerror = done; img.src = out.toDataURL("image/png"); });
+  area.innerHTML = ""; area.appendChild(img);
+  window.print();
+  area.innerHTML = "";
 }
 
 /* the ticket as the printer's own raster image: 576 dots wide (72 mm at 203 dpi) */
 const PW = 576;
-async function ticketBytes(o, again){
+async function ticketCanvas(o, again){
   try { await Promise.all(["800 30px Heebo", "500 30px Heebo", "800 30px Tajawal", "500 30px Tajawal"].map(f => document.fonts.load(f))); } catch(e){}
   const c = document.createElement("canvas"); c.width = PW; c.height = 5000;
   const g = c.getContext("2d");
@@ -323,8 +374,12 @@ async function ticketBytes(o, again){
     center("שולם · " + (PAYN[o.pay] || o.pay), 28, false);
   }
   y += 16;
+  return {c, h: Math.min(c.height, Math.ceil(y))};
+}
+async function ticketBytes(o, again){
+  const t = await ticketCanvas(o, again), c = t.c, h = t.h;
   // the printer's dots are taller than wide (203 x 180 dpi), so the picture is squeezed to keep letters in shape
-  const h = Math.min(c.height, Math.ceil(y)), h2 = Math.max(1, Math.round(h * 180 / 203));
+  const h2 = Math.max(1, Math.round(h * 180 / 203));
   const c2 = document.createElement("canvas"); c2.width = PW; c2.height = h2;
   const g2 = c2.getContext("2d");
   g2.fillStyle = "#fff"; g2.fillRect(0, 0, PW, h2); g2.drawImage(c, 0, 0, PW, h, 0, 0, PW, h2);
@@ -360,7 +415,7 @@ function card(o){
       <div class="tot"><span>סה״כ <small class="paid">שולם · مدفوع · ${esc(PAYN[o.pay] || o.pay)}</small></span><span>${o.total}₪</span></div>
       <div class="acts">${o.status === "ready"
         ? `<button type="button" class="dn" data-id="${esc(o.id)}" data-act="done">נאסף · استلم</button><button type="button" class="undo" data-id="${esc(o.id)}" data-act="reopen">↩</button>`
-        : `<button type="button" class="rdy" data-id="${esc(o.id)}" data-act="ready">מוכן ✅ جاهز</button>`}${LIVE && printer ? `<button type="button" class="reprint" data-id="${esc(o.id)}" data-print="1" aria-label="הדפסה · طباعة">🖨️</button>` : ""}</div>
+        : `<button type="button" class="rdy" data-id="${esc(o.id)}" data-act="ready">מוכן ✅ جاهز</button>`}${LIVE ? `<button type="button" class="reprint" data-id="${esc(o.id)}" data-print="1" aria-label="הדפסה · طباعة">🖨️</button>` : ""}</div>
     </article>`;
 }
 /* unpaid orders: only the number, the customer and the amount; the kitchen does not see them */
@@ -407,9 +462,10 @@ document.getElementById("list").addEventListener("click", async e => {
   if (pb) {
     pb.disabled = true;
     const o = orders.find(x => x.id === pb.dataset.id);
-    const ok = !!o && await printTicket(o, true);
+    let ok = false;
+    try { if (o) { await api.reprint(o.id); o.printed = 2; ok = true; } } catch(err){ lastPrintErr = err.code || "other"; }
     pb.textContent = ok ? "✓" : "✗";
-    if (!ok) showPrintErr();
+    if (ok) autoPrintNew(orders);
     setTimeout(() => { pb.disabled = false; pb.textContent = "🖨️"; }, 1800);
     return;
   }

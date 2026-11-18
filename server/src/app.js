@@ -17,7 +17,7 @@ export function migrate(sql) {
   sql.exec(`CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER)`);
   sql.exec(`CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts)`);
   sql.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`);
-  // printed: 0 = not printed yet, 1 = printed in the kitchen
+  // printed: 0 = not printed yet, 1 = printed in the kitchen, 2 = print again (asked from any shop screen)
   try { sql.exec(`ALTER TABLE orders ADD COLUMN printed INTEGER NOT NULL DEFAULT 0`); } catch { /* column already there */ }
 }
 
@@ -187,14 +187,14 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
         if (!o) return json({ error: "not_found" }, 404);
         if (!["new", "ready", "done"].includes(o.status)) return json({ error: "not_paid" }, 409);
         // two shop screens may both try to print a new order; only the first one prints it
-        if (o.printed && body.again !== true) return json({ skipped: true });
+        if (o.printed === 1 && body.again !== true) return json({ skipped: true });
         sql.exec(`UPDATE orders SET printed = 1 WHERE id = ?`, o.id);
       }
       if (!io.print) return json({ error: "print_unavailable" }, 503);
       try {
         await io.print(target.host, target.port, bytes);
       } catch {
-        if (o && !o.printed) sql.exec(`UPDATE orders SET printed = 0 WHERE id = ?`, o.id);
+        if (o && o.printed !== 1) sql.exec(`UPDATE orders SET printed = ? WHERE id = ?`, o.printed, o.id);
         return json({ error: "printer_unreachable" }, 502);
       }
       return json({ ok: true });
@@ -203,6 +203,21 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
       if (typeof body.open !== "boolean") return json({ error: "bad_request" }, 400);
       sql.exec(`INSERT INTO settings(k, v) VALUES ('open', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, body.open ? "1" : "0");
       return json({ open: isOpen(sql) });
+    }
+    m = /^\/api\/staff\/orders\/([0-9a-f-]{36})\/(reprint|claim)$/.exec(path);
+    if (m && req.method === "POST") {
+      const o = rows(sql, `SELECT * FROM orders WHERE id = ?`, m[1])[0];
+      if (!o) return json({ error: "not_found" }, 404);
+      if (!["new", "ready", "done"].includes(o.status)) return json({ error: "not_paid" }, 409);
+      if (m[2] === "reprint") {
+        // whichever screen prints for the kitchen picks it up and prints a copy
+        sql.exec(`UPDATE orders SET printed = 2 WHERE id = ?`, o.id);
+        return json({ ok: true });
+      }
+      // the shop computer takes an order to print with its own printer; only one screen gets it
+      if (o.printed === 1) return json({ claimed: false });
+      sql.exec(`UPDATE orders SET printed = 1 WHERE id = ?`, o.id);
+      return json({ claimed: true, again: o.printed === 2 });
     }
     m = /^\/api\/staff\/orders\/([0-9a-f-]{36})\/(paid|cancel|ready|reopen|done)$/.exec(path);
     if (m && req.method === "POST") {
