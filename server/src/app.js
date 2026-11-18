@@ -155,7 +155,14 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
 
     if (path === "/api/staff/orders" && req.method === "GET") {
       const list = rows(sql, `SELECT * FROM orders WHERE status NOT IN ('done', 'cancelled') OR updated > ? ORDER BY no`, now - 10 * 60000);
-      return json({ now, open: isOpen(sql), printer: printerTarget(sql), orders: list.map(o => view(o, true)) });
+      // the shop computer that prints through its browser says so on every refresh, so the phone can show it is there
+      if (url.searchParams.get("local") === "1") setSetting(sql, "local_seen", now);
+      return json({
+        now, open: isOpen(sql), printer: printerTarget(sql),
+        localSeen: +(getSetting(sql, "local_seen") || 0) || null,
+        testAsked: +(getSetting(sql, "print_test") || 0) || null,
+        orders: list.map(o => view(o, true))
+      });
     }
     if (path === "/api/staff/printer" && req.method === "POST") {
       if (body.clear === true) {
@@ -172,6 +179,16 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
       setSetting(sql, "printer_host", host);
       setSetting(sql, "printer_port", port);
       return json({ printer: printerTarget(sql) });
+    }
+    if (path === "/api/staff/print-test" && req.method === "POST") {
+      // a test page asked from the phone; the shop computer prints it on its next refresh
+      setSetting(sql, "print_test", now);
+      return json({ ok: true });
+    }
+    if (path === "/api/staff/print-test/claim" && req.method === "POST") {
+      const asked = +(getSetting(sql, "print_test") || 0);
+      sql.exec(`DELETE FROM settings WHERE k = 'print_test'`);
+      return json({ claimed: !!asked && now - asked < 10 * 60000 });
     }
     if (path === "/api/staff/print" && req.method === "POST") {
       // the shop screen draws the ticket (Hebrew and Arabic come out right) and sends it ready for the printer

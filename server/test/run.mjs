@@ -183,4 +183,16 @@ await test("printing on the shop computer: claim once, reprint asked from the ph
   assert.equal((await call("POST", `/api/staff/orders/${o.id}/claim`, {}, auth)).body.claimed, false);
 });
 
+await test("test page asked from the phone is printed once by the shop computer", async () => {
+  const { token } = (await call("POST", "/api/staff/login", { pin: "482913" }, { ip: "9.9.9.7" })).body;
+  const auth = { Authorization: "Bearer " + token, ip: "77.125.10.21" };
+  assert.equal((await call("GET", "/api/staff/orders", undefined, auth)).body.testAsked, null);
+  await call("POST", "/api/staff/print-test", {}, auth);
+  const seenByShop = (await call("GET", "/api/staff/orders?local=1", undefined, auth)).body;
+  assert.ok(seenByShop.testAsked);
+  assert.equal(seenByShop.localSeen, now);
+  assert.equal((await call("POST", "/api/staff/print-test/claim", {}, auth)).body.claimed, true);
+  assert.equal((await call("POST", "/api/staff/print-test/claim", {}, auth)).body.claimed, false);
+});
+
 console.log(`\n${passed} tests passed`);
