@@ -22,6 +22,9 @@
   button{font:inherit;cursor:pointer}
   .snd{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--gold);background:transparent;color:var(--gold)}
   .snd.on{background:var(--gold);color:#2B2A2E}
+  .shop{font-size:14px;font-weight:800;padding:7px 14px;border-radius:999px;border:2px solid #8a4b4b;background:#3b2a2a;color:#F2B8B8}
+  .shop.on{border-color:var(--green);background:var(--green);color:#16240F}
+  .shop[hidden]{display:none}
   .demo{margin:12px 16px 0;padding:9px 14px;border-radius:12px;background:var(--gold);color:#2B2A2E;font-size:13px;font-weight:700;text-align:center}
   main{padding:14px 16px 40px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));align-items:start}
   .empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
@@ -70,6 +73,7 @@
 <header>
   <h1>הזמנות · الطلبات <small>הכנאפה של זוהר</small></h1>
   <div class="counts"><span class="chip wchip">ממתין לתשלום · بانتظار الدفع <b id="cWait">0</b></span><span class="chip">בהכנה · عم يتحضّر <b id="cPrep">0</b></span><span class="chip">מוכן · جاهز <b id="cReady">0</b></span></div>
+  <button type="button" class="shop" id="shop" hidden></button>
   <button type="button" class="snd" id="snd">🔔 צליל · صوت</button>
 </header>
 <div class="demo" id="demo">גרסת ניסיון · עובד רק באותו מכשיר שבו נשלחה ההזמנה · نسخة تجربة: بتشتغل بس على نفس الجهاز اللي انبعت منه الطلب</div>
@@ -118,9 +122,32 @@ function remoteApi(base){
     hasToken: () => !!token,
     async login(pin){ const j = await req("/api/staff/login", {method: "POST", body: JSON.stringify({pin})}); token = j.token; try { localStorage.setItem(TOKEN_KEY, token); } catch(e){} },
     logout(){ token = ""; try { localStorage.removeItem(TOKEN_KEY); } catch(e){} },
-    async list(){ return (await req("/api/staff/orders")).orders; },
+    async list(){ const j = await req("/api/staff/orders"); setShop(j.open); return j.orders; },
+    setOpen: open => req("/api/staff/open", {method: "POST", body: JSON.stringify({open})}),
     act: (id, action) => req(`/api/staff/orders/${encodeURIComponent(id)}/${action}`, {method: "POST", body: "{}"})
   };
+}
+/* online ordering on/off: only this screen (signed in) can open it */
+let shopOpen = null;
+const shopBtn = document.getElementById("shop");
+function setShop(open){
+  if (typeof open !== "boolean") return;
+  shopOpen = open; shopBtn.hidden = false;
+  shopBtn.classList.toggle("on", open);
+  shopBtn.textContent = open ? "🟢 הזמנות באתר פתוחות · الطلب أونلاين مفتوح" : "🔴 הזמנות באתר סגורות · الطلب أونلاين مسكّر";
+}
+shopBtn.addEventListener("click", async () => {
+  if (shopOpen === null) return;
+  const next = !shopOpen;
+  if (!confirmOpen(next)) return;
+  shopBtn.disabled = true;
+  try { const j = await api.setOpen(next); setShop(j.open); }
+  catch(err){ if (err.code === "unauthorized") { api.logout(); showLogin(); } else document.getElementById("net").hidden = false; }
+  finally { shopBtn.disabled = false; }
+});
+function confirmOpen(next){
+  const q = next ? "לפתוח הזמנות מהאתר ללקוחות? · تفتح الطلب من الموقع للزباين؟" : "לסגור הזמנות מהאתר? · تسكّر الطلب من الموقع؟";
+  return shopBtn.dataset.ask === "no" || window.confirm(q);
 }
 const api = LIVE ? remoteApi(API) : localApi();
 document.getElementById("demo").hidden = LIVE;
@@ -197,7 +224,7 @@ function beep(){
 
 /* sign-in with the shop's PIN (only with the server) */
 const loginForm = document.getElementById("login");
-function showLogin(){ loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
+function showLogin(){ shopBtn.hidden = true; loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   const err = document.getElementById("lerr"); err.textContent = "";

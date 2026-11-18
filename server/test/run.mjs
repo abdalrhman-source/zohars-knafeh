@@ -23,6 +23,20 @@ const [offId] = Object.entries(MENU).find(([, it]) => it.off);
 let passed = 0;
 const test = async (name, fn) => { await fn(); passed++; console.log("ok -", name); };
 
+await test("ordering is closed until the shop screen opens it", async () => {
+  assert.equal((await call("GET", "/api/config")).body.open, false);
+  const shut = await call("POST", "/api/orders", { items: [{ id: drinkId, q: 1 }], name: "רנא", pay: "bit" });
+  assert.equal(shut.status, 403);
+  assert.equal(shut.body.error, "closed");
+  assert.equal((await call("POST", "/api/staff/open", { open: true })).status, 401);
+  const { token } = (await call("POST", "/api/staff/login", { pin: "482913" })).body;
+  const auth = { Authorization: "Bearer " + token };
+  assert.equal((await call("POST", "/api/staff/open", { open: "yes" }, auth)).status, 400);
+  assert.equal((await call("POST", "/api/staff/open", { open: true }, auth)).body.open, true);
+  assert.equal((await call("GET", "/api/config")).body.open, true);
+  assert.equal((await call("GET", "/api/staff/orders", undefined, auth)).body.open, true);
+});
+
 await test("price comes from the server, with add-ons", async () => {
   // whole tray toppings: Nutella (+5) and Nutella Baby (+8), on top, Turkish ice cream (+12), x2
   const items = [{ id: knafehId, q: 2, s: { split: [2], whole: [0, 5], where: [2], icecream: [1], changes: [2] } }, { id: drinkId, q: 1 }];

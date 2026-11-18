@@ -594,17 +594,17 @@ const OT = {
       empty:"ההזמנה ריקה", total:"סה״כ", name:"שם", phone:"טלפון", note:"הערה למטבח", send:"שליחת הזמנה",
       demo:"גרסת ניסיון · ההזמנה לא נשלחת למסעדה ועדיין אין תשלום", ticket:"כך ההזמנה תודפס במטבח",
       orderNo:"הזמנה", pay:"תשלום", payDemo:"Apple Pay · אשראי · ביט (בקרוב)", newOrder:"הזמנה חדשה",
-      pickup:"איסוף עצמי", missing:"צריך לבחור: ", back:"חזרה להזמנה", item:"פריט", itemsN:"פריטים"},
+      pickup:"איסוף עצמי", missing:"צריך לבחור: ", back:"חזרה להזמנה", item:"פריט", itemsN:"פריטים", closed:"ההזמנה באתר סגורה כרגע · אפשר להזמין בדלפק"},
   ar:{add:"إضافة", addCart:"أضف للطلب", req:"إجباري", opt:"اختياري", upTo:"لحد ", cart:"طلبي", view:"للطلب",
       empty:"الطلب فاضي", total:"المجموع", name:"الاسم", phone:"التلفون", note:"ملاحظة للمطبخ", send:"إرسال الطلب",
       demo:"نسخة تجربة · الطلب ما بيوصل للمحل ولسا ما في دفع", ticket:"هيك رح تنطبع الطلبية بالمطبخ",
       orderNo:"طلب", pay:"الدفع", payDemo:"Apple Pay · بطاقة · بيت (قريباً)", newOrder:"طلب جديد",
-      pickup:"استلام من المحل", missing:"لازم تختار: ", back:"رجوع للطلب", item:"صنف", itemsN:"أصناف"},
+      pickup:"استلام من المحل", missing:"لازم تختار: ", back:"رجوع للطلب", item:"صنف", itemsN:"أصناف", closed:"الطلب من الموقع مسكّر هلأ · بتقدر تطلب عالكاونتر"},
   en:{add:"Add", addCart:"Add to order", req:"Required", opt:"Optional", upTo:"up to ", cart:"My order", view:"View order",
       empty:"Your order is empty", total:"Total", name:"Name", phone:"Phone", note:"Note for the kitchen", send:"Send order",
       demo:"Demo · the order is not sent to the shop and there is no payment yet", ticket:"This is how the order prints in the kitchen",
       orderNo:"Order", pay:"Payment", payDemo:"Apple Pay · card · Bit (coming soon)", newOrder:"New order",
-      pickup:"Pickup", missing:"Please choose: ", back:"Back to order", item:"item", itemsN:"items"}
+      pickup:"Pickup", missing:"Please choose: ", back:"Back to order", item:"item", itemsN:"items", closed:"Online ordering is closed right now · please order at the counter"}
 };
 /* Wolt rules: min/max per group, which groups show when, and the default choice (same data the server checks) */
 const RULES = {"icecream": {"min": 1, "def": 0}, "split": {"min": 1, "def": 0}, "whole": {"show": {"g": "split", "any": [2]}}, "half": {"show": {"g": "split", "any": [1]}}, "where": {"min": 1, "show": {"g": "split", "any": [1, 2]}}, "sauces": {"def": 0}, "katayef": {"min": 1, "def": 0}};
@@ -634,9 +634,13 @@ function decorate(){
     menu.parentNode.insertBefore(b, menu);
   }
   const db = document.getElementById("demoBar");
-  db.hidden = LIVE;
+  const canOrder = !LIVE || shopOpen;
+  db.hidden = canOrder && LIVE;
+  db.classList.toggle("closed", !canOrder);
   if (!LIVE) db.innerHTML = `${esc(t.demo)} · <a href="staff/" target="_blank" rel="noopener">${esc(ST[lang].staff)}</a>`;
-  menu.querySelectorAll(".optbtn").forEach(b => b.remove());
+  else if (!canOrder) db.textContent = t.closed;
+  menu.querySelectorAll(".optbtn, .addbtn").forEach(b => b.remove());
+  if (!canOrder) { updateBar(); return; }
   menu.querySelectorAll(".item[data-c]").forEach(el => {
     if (el.classList.contains("off")) return;
     const btn = document.createElement("button");
@@ -657,6 +661,7 @@ const _baseRender = render;
 render = function(){ _baseRender(); decorate(); if (typeof updatePill === 'function') updatePill(); };
 
 document.getElementById("menu").addEventListener("click", e => {
+  if (LIVE && !shopOpen) return;
   const b = e.target.closest(".addbtn");
   if (b) {
     const c = +b.dataset.c, i = +b.dataset.i, it = MENU[c].items[i];
@@ -685,8 +690,9 @@ function cartTotals(){
 }
 function updateBar(){
   const {n, sum} = cartTotals(), t = T();
-  bar.hidden = n === 0;
-  document.body.classList.toggle("has-cart", n > 0);
+  const show = n > 0 && (!LIVE || shopOpen);
+  bar.hidden = !show;
+  document.body.classList.toggle("has-cart", show);
   bar.innerHTML = `<span class="cb-n">${n}</span><span class="cb-t">${esc(t.view)}</span><span class="cb-s">${sum}${UI[lang].cur}</span>`;
 }
 function addLine(c, i, sel, q){
@@ -836,12 +842,13 @@ sheet.addEventListener("click", e => {
 /* ---------- orders: the server when API is set, otherwise this device (demo) ---------- */
 const API = "https://zohars-knafeh-orders.abdalrhmanmanasra11.workers.dev";
 const LIVE = !!API;
+let shopOpen = !LIVE;   /* with the server, ordering starts closed until the shop screen opens it */
 const MY_KEY = "zk-my2", LOCAL_KEY = "zk-orders2";
 const FINAL = {done: 1, cancelled: 1};
 const ERR = {
-  he:{missing_name:"כתבו שם, לפיו נזהה את ההעברה בביט", bad_phone:"מספר הטלפון לא תקין", item_unavailable:"אחד הפריטים כבר לא זמין, הסירו אותו מההזמנה", rate_limited:"נשלחו יותר מדי הזמנות, נסו שוב בעוד כמה דקות", busy:"יש עומס כרגע, נסו שוב בעוד רגע", pay_not_available:"אמצעי התשלום הזה עוד לא זמין", net:"אין חיבור לאינטרנט, נסו שוב", other:"משהו השתבש, נסו שוב"},
-  ar:{missing_name:"اكتب اسمك، فيه بنعرف تحويلك ببيت", bad_phone:"رقم التلفون مش صحيح", item_unavailable:"صنف من الطلب صار مش متوفر، احذفه من الطلب", rate_limited:"انبعتت طلبات كتير، جرّب كمان كم دقيقة", busy:"في ضغط هلأ، جرّب كمان شوي", pay_not_available:"طريقة الدفع هاي لسا مش متوفرة", net:"ما في إنترنت، جرّب كمان مرة", other:"صار خطأ، جرّب كمان مرة"},
-  en:{missing_name:"Please write your name; we match the Bit transfer by it", bad_phone:"The phone number is not valid", item_unavailable:"An item is no longer available; remove it from the order", rate_limited:"Too many orders were sent; try again in a few minutes", busy:"We're busy right now; try again shortly", pay_not_available:"This payment method isn't available yet", net:"No internet connection; try again", other:"Something went wrong; try again"}
+  he:{closed:"ההזמנה באתר סגורה כרגע · אפשר להזמין בדלפק", missing_name:"כתבו שם, לפיו נזהה את ההעברה בביט", bad_phone:"מספר הטלפון לא תקין", item_unavailable:"אחד הפריטים כבר לא זמין, הסירו אותו מההזמנה", rate_limited:"נשלחו יותר מדי הזמנות, נסו שוב בעוד כמה דקות", busy:"יש עומס כרגע, נסו שוב בעוד רגע", pay_not_available:"אמצעי התשלום הזה עוד לא זמין", net:"אין חיבור לאינטרנט, נסו שוב", other:"משהו השתבש, נסו שוב"},
+  ar:{closed:"الطلب من الموقع مسكّر هلأ · بتقدر تطلب عالكاونتر", missing_name:"اكتب اسمك، فيه بنعرف تحويلك ببيت", bad_phone:"رقم التلفون مش صحيح", item_unavailable:"صنف من الطلب صار مش متوفر، احذفه من الطلب", rate_limited:"انبعتت طلبات كتير، جرّب كمان كم دقيقة", busy:"في ضغط هلأ، جرّب كمان شوي", pay_not_available:"طريقة الدفع هاي لسا مش متوفرة", net:"ما في إنترنت، جرّب كمان مرة", other:"صار خطأ، جرّب كمان مرة"},
+  en:{closed:"Online ordering is closed right now · please order at the counter", missing_name:"Please write your name; we match the Bit transfer by it", bad_phone:"The phone number is not valid", item_unavailable:"An item is no longer available; remove it from the order", rate_limited:"Too many orders were sent; try again in a few minutes", busy:"We're busy right now; try again shortly", pay_not_available:"This payment method isn't available yet", net:"No internet connection; try again", other:"Something went wrong; try again"}
 };
 const itemById = {};
 MENU.forEach(c => c.items.forEach(it => { if (it.id) itemById[it.id] = it; }));
@@ -878,7 +885,14 @@ function remoteApi(base){
 }
 const api = LIVE ? remoteApi(API) : localApi();
 let livePays = LIVE ? ["bit"] : PAYS.map(p => p[0]);
-if (LIVE) api.config().then(c => { if (c && Array.isArray(c.pays) && c.pays.length) livePays = c.pays; }).catch(() => {});
+function loadConfig(){
+  return api.config().then(c => {
+    if (c && Array.isArray(c.pays) && c.pays.length) livePays = c.pays;
+    const open = !!(c && c.open === true);
+    if (open !== shopOpen) { shopOpen = open; decorate(); }
+  }).catch(() => {});
+}
+if (LIVE) { loadConfig(); setInterval(loadConfig, 60000); }
 
 let myOrd = null, sending = false;
 const myId = () => { try { return localStorage.getItem(MY_KEY) || ""; } catch(e){ return ""; } };
@@ -901,6 +915,7 @@ async function sendOrder(btn){
   } catch(e){
     if (sheet.dataset.mode !== "cart") { sheet.dataset.mode = "cart"; drawCart(); }
     showErr(e.code);
+    if (e.code === "closed" && shopOpen) { shopOpen = false; decorate(); }
   } finally { sending = false; const b = sheet.querySelector(".send"); if (b) b.disabled = false; }
 }
 

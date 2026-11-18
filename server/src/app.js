@@ -16,12 +16,15 @@ export function migrate(sql) {
   sql.exec(`CREATE INDEX IF NOT EXISTS orders_status ON orders(status)`);
   sql.exec(`CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER)`);
   sql.exec(`CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts)`);
+  sql.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`);
 }
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 const rows = (sql, q, ...b) => sql.exec(q, ...b).toArray();
+/** Online ordering stays closed until someone signed in to the shop screen opens it. */
+const isOpen = sql => (rows(sql, `SELECT v FROM settings WHERE k = 'open'`)[0] || {}).v === "1";
 const dayKey = now => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(new Date(now));
 
 /** Counts a hit for key k; false when k already has `limit` hits inside the window. */
@@ -90,12 +93,13 @@ export async function handle(req, sql, env, now = Date.now()) {
 
   /* ---------- customers ---------- */
   if (path === "/api/config" && req.method === "GET") {
-    return json({ pays, bitPhone: SHOP.bitPhone, open: true });
+    return json({ pays, bitPhone: SHOP.bitPhone, open: isOpen(sql) });
   }
 
   if (path === "/api/orders" && req.method === "POST") {
     // at most 30 tries and 6 placed orders per device in 10 minutes
     if (!allow(sql, "try:" + ip, 30, 10 * 60000, now)) return json({ error: "rate_limited" }, 429);
+    if (!isOpen(sql)) return json({ error: "closed" }, 403);
     const [{ c: placed }] = rows(sql, `SELECT COUNT(*) AS c FROM hits WHERE k = ? AND ts > ?`, "order:" + ip, now - 10 * 60000);
     if (placed >= 6) return json({ error: "rate_limited" }, 429);
     const [{ c: pending }] = rows(sql, `SELECT COUNT(*) AS c FROM orders WHERE status = 'awaiting_payment'`);
@@ -137,7 +141,12 @@ export async function handle(req, sql, env, now = Date.now()) {
 
     if (path === "/api/staff/orders" && req.method === "GET") {
       const list = rows(sql, `SELECT * FROM orders WHERE status NOT IN ('done', 'cancelled') OR updated > ? ORDER BY no`, now - 10 * 60000);
-      return json({ now, orders: list.map(o => view(o, true)) });
+      return json({ now, open: isOpen(sql), orders: list.map(o => view(o, true)) });
+    }
+    if (path === "/api/staff/open" && req.method === "POST") {
+      if (typeof body.open !== "boolean") return json({ error: "bad_request" }, 400);
+      sql.exec(`INSERT INTO settings(k, v) VALUES ('open', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, body.open ? "1" : "0");
+      return json({ open: isOpen(sql) });
     }
     m = /^\/api\/staff\/orders\/([0-9a-f-]{36})\/(paid|cancel|ready|reopen|done)$/.exec(path);
     if (m && req.method === "POST") {
