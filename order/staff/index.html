@@ -34,7 +34,7 @@
   .prn{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted)}
   .prn.ok{border-color:var(--green);color:#B9E0A5}
   .prn.err{border-color:#8a4b4b;color:#F2B8B8;background:#3b2a2a}
-  .prn[hidden],.panel[hidden]{display:none}
+  .prn[hidden],.panel[hidden],.prow[hidden]{display:none}
   .panel{margin:12px 16px 0;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:grid;gap:10px;max-width:620px}
   .panel h3{font-size:16px}
   .panel p{font-size:13px;color:var(--muted);line-height:1.5}
@@ -210,7 +210,9 @@ let printer = null, printErr = false, lastPrintErr = "", printRetryAt = 0, local
 const printing = new Set();
 const PAUTO_KEY = "zk-print-auto", PLOCAL_KEY = "zk-print-local";
 /* "this computer prints": the shop computer next to the printer prints through Windows from this page */
-let printLocal = false; try { printLocal = localStorage.getItem(PLOCAL_KEY) === "1"; } catch(e){}
+/* phones and tablets cannot drive the receipt printer from the browser, so only a computer can be the printing screen */
+const IS_MOBILE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let printLocal = false; try { printLocal = !IS_MOBILE && localStorage.getItem(PLOCAL_KEY) === "1"; } catch(e){}
 let autoPrint = true; try { autoPrint = localStorage.getItem(PAUTO_KEY) !== "0"; } catch(e){}
 const prnBtn = document.getElementById("prn"), panel = document.getElementById("ppanel"), pmsg = document.getElementById("pmsg");
 const PERR = {
@@ -233,6 +235,7 @@ function drawPrn(){
 }
 function showPrintErr(){ panel.hidden = false; pmsg.textContent = PERR[lastPrintErr] || PERR.other; fillPanel(false); }
 function fillPanel(all){
+  document.getElementById("plocal").parentNode.hidden = IS_MOBILE;
   if (all !== false) { document.getElementById("phost").value = printer ? printer.host : ""; document.getElementById("pport").value = printer ? printer.port : ""; }
   document.getElementById("pauto").checked = autoPrint;
   document.getElementById("plocal").checked = printLocal;
@@ -434,7 +437,7 @@ async function ticketBytes(o, again){
 const toB64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
 
 const api = LIVE ? remoteApi(API) : localApi();
-const BUILD = "8b39e82f6a";
+const BUILD = "e2092166b7";
 if (LIVE) setInterval(async () => {
   try {
     const v = (await (await fetch("version.txt?t=" + Date.now(), {cache: "no-store"})).text()).trim();
