@@ -230,6 +230,8 @@ function drawPrn(){
   if (printLocal) { prnBtn.className = "prn ok"; prnBtn.innerHTML = PRN_ICON + "מדפיס מהמחשב הזה · بيطبع من هاد الجهاز"; return; }
   const shopPc = localSeen && Date.now() - localSeen < 90000;
   if (!printer && shopPc) { prnBtn.className = "prn ok"; prnBtn.innerHTML = PRN_ICON + "מדפסת בקופה ✓ · الطابعة عالكاشير"; return; }
+  // the shop computer printed before but its screen is closed now: orders will not print until it is opened again
+  if (!printer && localSeen) { prnBtn.className = "prn err"; prnBtn.innerHTML = PRN_ICON + "מסך הקופה סגור · شاشة الكاشير مسكّرة"; return; }
   prnBtn.className = "prn" + (!printer ? "" : printErr ? " err" : " ok");
   prnBtn.innerHTML = PRN_ICON + (!printer ? "חיבור מדפסת · ربط الطابعة" : printErr ? "המדפסת לא עונה · الطابعة مش رادّة" : "מדפסת ✓ · الطابعة");
 }
@@ -437,11 +439,17 @@ async function ticketBytes(o, again){
 const toB64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
 
 const api = LIVE ? remoteApi(API) : localApi();
-const BUILD = "e2092166b7";
+const BUILD = "b679539e7d";
+let selfReload = false;
+/* on the printing computer, closing this page stops kitchen printing, so the browser asks before closing it */
+window.addEventListener("beforeunload", e => {
+  if (!printLocal || selfReload || !loginForm.hidden) return;
+  e.preventDefault(); e.returnValue = "";
+});
 if (LIVE) setInterval(async () => {
   try {
     const v = (await (await fetch("version.txt?t=" + Date.now(), {cache: "no-store"})).text()).trim();
-    if (v && v !== BUILD && !printing.size && !testBusy && panel.hidden) location.reload();
+    if (v && v !== BUILD && !printing.size && !testBusy && panel.hidden) { selfReload = true; location.reload(); }
   } catch(e){}
 }, 3 * 60000);
 document.getElementById("demo").hidden = LIVE;
