@@ -17,12 +17,22 @@ export function migrate(sql) {
   sql.exec(`CREATE TABLE IF NOT EXISTS hits(k TEXT, ts INTEGER)`);
   sql.exec(`CREATE INDEX IF NOT EXISTS hits_k ON hits(k, ts)`);
   sql.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`);
+  // printed: 0 = not printed yet, 1 = printed in the kitchen
+  try { sql.exec(`ALTER TABLE orders ADD COLUMN printed INTEGER NOT NULL DEFAULT 0`); } catch { /* column already there */ }
 }
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
   status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" }
 });
 const rows = (sql, q, ...b) => sql.exec(q, ...b).toArray();
+const getSetting = (sql, k) => (rows(sql, `SELECT v FROM settings WHERE k = ?`, k)[0] || {}).v;
+const setSetting = (sql, k, v) => sql.exec(`INSERT INTO settings(k, v) VALUES (?, ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, k, String(v));
+/** Where the kitchen printer is reached from the internet: the shop's address and the port the router forwards to it. */
+const printerTarget = sql => {
+  const host = getSetting(sql, "printer_host"), port = +(getSetting(sql, "printer_port") || 0);
+  return host && port ? { host, port } : null;
+};
+const MAX_PRINT_BYTES = 300000;
 /** Online ordering stays closed until someone signed in to the shop screen opens it. */
 const isOpen = sql => (rows(sql, `SELECT v FROM settings WHERE k = 'open'`)[0] || {}).v === "1";
 const dayKey = now => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(new Date(now));
@@ -40,7 +50,7 @@ function view(o, staff) {
     id: o.id, no: o.no, created: o.created, status: o.status, paid: !!o.paid, pay: o.pay,
     total: o.total, lines: JSON.parse(o.lines), name: o.name
   };
-  if (staff) Object.assign(out, { phone: o.phone, note: o.note, updated: o.updated });
+  if (staff) Object.assign(out, { phone: o.phone, note: o.note, updated: o.updated, printed: o.printed || 0 });
   else out.bitPhone = SHOP.bitPhone;
   return out;
 }
@@ -75,7 +85,11 @@ const NEXT = {   // allowed status changes from the shop screen
   done: { from: ["ready"], to: "done" }
 };
 
-export async function handle(req, sql, env, now = Date.now()) {
+/**
+ * io.print(host, port, bytes) sends raw bytes to the kitchen printer (a TCP socket in the Worker);
+ * tests pass their own.
+ */
+export async function handle(req, sql, env, now = Date.now(), io = {}) {
   const url = new URL(req.url);
   const path = url.pathname;
   const ip = req.headers.get("X-Client-IP") || "0";
@@ -83,7 +97,7 @@ export async function handle(req, sql, env, now = Date.now()) {
   let body = {};
   if (req.method === "POST") {
     const text = await req.text();
-    if (text.length > 16000) return json({ error: "too_large" }, 413);
+    if (text.length > (path === "/api/staff/print" ? MAX_PRINT_BYTES * 1.4 + 2000 : 16000)) return json({ error: "too_large" }, 413);
     try { body = text ? JSON.parse(text) : {}; } catch { return json({ error: "bad_json" }, 400); }
     if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "bad_json" }, 400);
   }
@@ -141,7 +155,49 @@ export async function handle(req, sql, env, now = Date.now()) {
 
     if (path === "/api/staff/orders" && req.method === "GET") {
       const list = rows(sql, `SELECT * FROM orders WHERE status NOT IN ('done', 'cancelled') OR updated > ? ORDER BY no`, now - 10 * 60000);
-      return json({ now, open: isOpen(sql), orders: list.map(o => view(o, true)) });
+      return json({ now, open: isOpen(sql), printer: printerTarget(sql), orders: list.map(o => view(o, true)) });
+    }
+    if (path === "/api/staff/printer" && req.method === "POST") {
+      if (body.clear === true) {
+        sql.exec(`DELETE FROM settings WHERE k IN ('printer_host', 'printer_port')`);
+        return json({ printer: null });
+      }
+      const port = body.port;
+      if (!Number.isInteger(port) || port < 1 || port > 65535 || port === 25) return json({ error: "bad_port" }, 400);
+      // "use this network": the address the shop screen is calling from, when it is on the shop's Wi-Fi
+      const host = body.useMyIp === true ? ip : String(body.host || "").trim().toLowerCase();
+      // routers forward ports on the IPv4 address; an IPv6 address would need a different router setting
+      if (body.useMyIp === true && host.includes(":")) return json({ error: "ipv6" }, 400);
+      if (!/^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/.test(host) && !/^[0-9a-f:]{2,39}$/.test(host)) return json({ error: "bad_host" }, 400);
+      setSetting(sql, "printer_host", host);
+      setSetting(sql, "printer_port", port);
+      return json({ printer: printerTarget(sql) });
+    }
+    if (path === "/api/staff/print" && req.method === "POST") {
+      // the shop screen draws the ticket (Hebrew and Arabic come out right) and sends it ready for the printer
+      const target = printerTarget(sql);
+      if (!target) return json({ error: "no_printer" }, 409);
+      if (typeof body.data !== "string" || !/^[A-Za-z0-9+/]+={0,2}$/.test(body.data)) return json({ error: "bad_data" }, 400);
+      let bytes;
+      try { bytes = Uint8Array.from(atob(body.data), ch => ch.charCodeAt(0)); } catch { return json({ error: "bad_data" }, 400); }
+      if (bytes.length < 4 || bytes.length > MAX_PRINT_BYTES || bytes[0] !== 0x1b || bytes[1] !== 0x40) return json({ error: "bad_data" }, 400);
+      let o = null;
+      if (body.id !== undefined) {
+        o = rows(sql, `SELECT * FROM orders WHERE id = ?`, String(body.id))[0];
+        if (!o) return json({ error: "not_found" }, 404);
+        if (!["new", "ready", "done"].includes(o.status)) return json({ error: "not_paid" }, 409);
+        // two shop screens may both try to print a new order; only the first one prints it
+        if (o.printed && body.again !== true) return json({ skipped: true });
+        sql.exec(`UPDATE orders SET printed = 1 WHERE id = ?`, o.id);
+      }
+      if (!io.print) return json({ error: "print_unavailable" }, 503);
+      try {
+        await io.print(target.host, target.port, bytes);
+      } catch {
+        if (o && !o.printed) sql.exec(`UPDATE orders SET printed = 0 WHERE id = ?`, o.id);
+        return json({ error: "printer_unreachable" }, 502);
+      }
+      return json({ ok: true });
     }
     if (path === "/api/staff/open" && req.method === "POST") {
       if (typeof body.open !== "boolean") return json({ error: "bad_request" }, 400);

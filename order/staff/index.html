@@ -25,6 +25,20 @@
   .shop{font-size:14px;font-weight:800;padding:7px 14px;border-radius:999px;border:2px solid #8a4b4b;background:#3b2a2a;color:#F2B8B8}
   .shop.on{border-color:var(--green);background:var(--green);color:#16240F}
   .shop[hidden]{display:none}
+  .prn{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted)}
+  .prn.ok{border-color:var(--green);color:#B9E0A5}
+  .prn.err{border-color:#8a4b4b;color:#F2B8B8;background:#3b2a2a}
+  .prn[hidden],.panel[hidden]{display:none}
+  .panel{margin:12px 16px 0;padding:14px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:grid;gap:10px;max-width:620px}
+  .panel h3{font-size:16px}
+  .panel p{font-size:13px;color:var(--muted);line-height:1.5}
+  .prow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .panel input[type=text]{font:inherit;font-size:16px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);flex:1;min-width:110px;direction:ltr;text-align:left}
+  .panel button{font:inherit;font-size:14px;font-weight:800;padding:10px 14px;border-radius:10px;border:0;background:var(--gold);color:#2B2A2E}
+  .panel button.sec2{background:transparent;border:1px solid var(--line);color:var(--ink)}
+  .panel label{font-size:14px}
+  .pmsg{font-size:13.5px;min-height:18px}
+  .reprint{background:transparent;border:1px solid var(--line)!important;color:var(--ink);flex:0 0 auto!important;padding:12px 14px!important;font-size:15px!important}
   .demo{margin:12px 16px 0;padding:9px 14px;border-radius:12px;background:var(--gold);color:#2B2A2E;font-size:13px;font-weight:700;text-align:center}
   main{padding:14px 16px 40px;display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));align-items:start}
   .empty{grid-column:1/-1;text-align:center;color:var(--muted);padding:60px 0;font-size:16px}
@@ -74,9 +88,18 @@
   <h1>הזמנות · الطلبات <small>הכנאפה של זוהר</small></h1>
   <div class="counts"><span class="chip wchip">ממתין לתשלום · بانتظار الدفع <b id="cWait">0</b></span><span class="chip">בהכנה · عم يتحضّر <b id="cPrep">0</b></span><span class="chip">מוכן · جاهز <b id="cReady">0</b></span></div>
   <button type="button" class="shop" id="shop" hidden></button>
+  <button type="button" class="prn" id="prn" hidden></button>
   <button type="button" class="snd" id="snd">🔔 צליל · صوت</button>
 </header>
 <div class="demo" id="demo">גרסת ניסיון · עובד רק באותו מכשיר שבו נשלחה ההזמנה · نسخة تجربة: بتشتغل بس على نفس الجهاز اللي انبعت منه الطلب</div>
+<section class="panel" id="ppanel" hidden>
+  <h3>🖨️ מדפסת המטבח · طابعة المطبخ</h3>
+  <p>כתובת האינטרנט של המסעדה והפורט שהראוטר מעביר למדפסת · عنوان المحل عالإنترنت والبورت اللي الراوتر بحوّله للطابعة</p>
+  <div class="prow"><input type="text" id="phost" placeholder="כתובת · العنوان" autocomplete="off" autocapitalize="off" spellcheck="false"><input type="text" id="pport" placeholder="פורט · البورت" inputmode="numeric" autocomplete="off" style="max-width:140px"></div>
+  <div class="prow"><button type="button" id="psave">שמירה · حفظ</button><button type="button" class="sec2" id="pmine">📍 אני במסעדה עכשיו · أنا بالمحل هلأ</button><button type="button" class="sec2" id="ptest">דף ניסיון · ورقة تجربة</button></div>
+  <label class="prow"><input type="checkbox" id="pauto"> הדפסה אוטומטית כשהזמנה משולמת · اطبع لحالها لما الطلبية تندفع</label>
+  <div class="pmsg" id="pmsg"></div>
+</section>
 <div class="net" id="net" hidden>אין חיבור לשרת · ما في اتصال بالسيرفر</div>
 <form class="login" id="login" hidden>
   <h2>כניסה למסך ההזמנות · الدخول لشاشة الطلبات</h2>
@@ -122,7 +145,9 @@ function remoteApi(base){
     hasToken: () => !!token,
     async login(pin){ const j = await req("/api/staff/login", {method: "POST", body: JSON.stringify({pin})}); token = j.token; try { localStorage.setItem(TOKEN_KEY, token); } catch(e){} },
     logout(){ token = ""; try { localStorage.removeItem(TOKEN_KEY); } catch(e){} },
-    async list(){ const j = await req("/api/staff/orders"); setShop(j.open); return j.orders; },
+    async list(){ const j = await req("/api/staff/orders"); setShop(j.open); if ("printer" in j) setPrinter(j.printer); return j.orders; },
+    setPrinter: body => req("/api/staff/printer", {method: "POST", body: JSON.stringify(body)}),
+    print: body => req("/api/staff/print", {method: "POST", body: JSON.stringify(body)}),
     setOpen: open => req("/api/staff/open", {method: "POST", body: JSON.stringify({open})}),
     act: (id, action) => req(`/api/staff/orders/${encodeURIComponent(id)}/${action}`, {method: "POST", body: "{}"})
   };
@@ -149,6 +174,173 @@ function confirmOpen(next){
   const q = next ? "לפתוח הזמנות מהאתר ללקוחות? · تفتح الطلب من الموقع للزباين؟" : "לסגור הזמנות מהאתר? · تسكّر الطلب من الموقع؟";
   return shopBtn.dataset.ask === "no" || window.confirm(q);
 }
+/* ---------- kitchen printer: this screen draws the ticket, the server passes it to the printer ---------- */
+let printer = null, printErr = false, lastPrintErr = "", printRetryAt = 0;
+const printing = new Set();
+const PAUTO_KEY = "zk-print-auto";
+let autoPrint = true; try { autoPrint = localStorage.getItem(PAUTO_KEY) !== "0"; } catch(e){}
+const prnBtn = document.getElementById("prn"), panel = document.getElementById("ppanel"), pmsg = document.getElementById("pmsg");
+const PERR = {
+  bad_port: "פורט לא תקין · البورت غلط",
+  bad_host: "כתובת לא תקינה · العنوان غلط",
+  ipv6: "הטלפון לא מחובר ל-WiFi של המסעדה (או שיש IPv6). התחברו ל-WiFi ונסו שוב, או הקלידו את הכתובת · التلفون مش على وايفاي المحل: اتّصل بالوايفاي وجرّب كمان مرة، أو اكتب العنوان بإيدك",
+  no_printer: "עוד לא הוגדרה מדפסת · لسا ما في طابعة",
+  printer_unreachable: "המדפסת לא עונה. בדקו שהיא דולקת ושהראוטר מעביר את הפורט · الطابعة مش رادّة: اتأكد إنها شغالة وإنه الراوتر محوّل البورت",
+  net: "אין חיבור לשרת · ما في اتصال بالسيرفر",
+  other: "משהו השתבש · صار خطأ"
+};
+function setPrinter(p){ printer = p || null; drawPrn(); }
+function drawPrn(){
+  prnBtn.hidden = !LIVE || !loginForm.hidden;
+  prnBtn.className = "prn" + (!printer ? "" : printErr ? " err" : " ok");
+  prnBtn.textContent = !printer ? "🖨️ חיבור מדפסת · ربط الطابعة" : printErr ? "🖨️ המדפסת לא עונה · الطابعة مش رادّة" : "🖨️ מדפסת ✓ · الطابعة";
+}
+function showPrintErr(){ panel.hidden = false; pmsg.textContent = PERR[lastPrintErr] || PERR.other; fillPanel(false); }
+function fillPanel(all){
+  if (all !== false) { document.getElementById("phost").value = printer ? printer.host : ""; document.getElementById("pport").value = printer ? printer.port : ""; }
+  document.getElementById("pauto").checked = autoPrint;
+}
+prnBtn.addEventListener("click", () => { panel.hidden = !panel.hidden; if (!panel.hidden) { pmsg.textContent = ""; fillPanel(); } });
+async function savePrinter(body){
+  pmsg.textContent = "…";
+  try {
+    const j = await api.setPrinter(body);
+    printErr = false; setPrinter(j.printer); draw();
+    pmsg.textContent = j.printer ? "נשמר · انحفظ: " + j.printer.host + ":" + j.printer.port : "";
+    if (j.printer) document.getElementById("phost").value = j.printer.host;
+  } catch(e){
+    if (e.code === "unauthorized") { api.logout(); showLogin(); return; }
+    pmsg.textContent = PERR[e.code] || PERR.other;
+  }
+}
+const portVal = () => parseInt(document.getElementById("pport").value, 10);
+document.getElementById("psave").addEventListener("click", () => savePrinter({host: document.getElementById("phost").value.trim(), port: portVal()}));
+document.getElementById("pmine").addEventListener("click", () => savePrinter({useMyIp: true, port: portVal()}));
+document.getElementById("ptest").addEventListener("click", async () => {
+  pmsg.textContent = "…";
+  pmsg.textContent = await printTicket(null, false) ? "נשלח למדפסת ✓ · انبعتت للطابعة" : (PERR[lastPrintErr] || PERR.other);
+});
+document.getElementById("pauto").addEventListener("change", e => { autoPrint = e.target.checked; try { localStorage.setItem(PAUTO_KEY, autoPrint ? "1" : "0"); } catch(err){} });
+
+/** Prints one order (or a test page when o is null). again = print it even if it was printed before. */
+async function printTicket(o, again){
+  if (!printer) { lastPrintErr = "no_printer"; return false; }
+  const key = o ? o.id : "test";
+  if (printing.has(key)) return false;
+  printing.add(key);
+  try {
+    const bytes = await ticketBytes(o, again);
+    const r = await api.print({data: toB64(bytes), id: o ? o.id : undefined, again: again ? true : undefined});
+    if (printErr) { printErr = false; drawPrn(); }
+    if (o && !r.skipped) o.printed = 1;
+    return true;
+  } catch(e){
+    lastPrintErr = e.code || "other";
+    if (e.code === "unauthorized") { api.logout(); showLogin(); }
+    else if (e.code === "printer_unreachable" || e.code === "net") { printErr = true; drawPrn(); }
+    return false;
+  } finally { printing.delete(key); }
+}
+/* paid orders that reached the kitchen print by themselves while this screen is open */
+async function autoPrintNew(list){
+  if (!LIVE || !printer || !autoPrint || Date.now() < printRetryAt) return;
+  const todo = list.filter(o => o.status === "new" && !o.printed && Date.now() - o.created < 3 * 3600000).sort((a, b) => a.no - b.no);
+  for (const o of todo) {
+    if (!(await printTicket(o, false))) { printRetryAt = Date.now() + 30000; break; }
+  }
+}
+
+/* the ticket as the printer's own raster image: 576 dots wide (72 mm at 203 dpi) */
+const PW = 576;
+async function ticketBytes(o, again){
+  try { await Promise.all(["800 30px Heebo", "500 30px Heebo", "800 30px Tajawal", "500 30px Tajawal"].map(f => document.fonts.load(f))); } catch(e){}
+  const c = document.createElement("canvas"); c.width = PW; c.height = 5000;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, PW, c.height); g.fillStyle = "#000"; g.textBaseline = "top";
+  const M = 10, W = PW - 2 * M;
+  let y = 6;
+  const font = (px, bold) => (bold ? 800 : 500) + " " + px + "px Heebo, Tajawal, Arial, sans-serif";
+  const wrap = (text, maxW) => {
+    const out = []; let line = "";
+    for (const w of String(text).split(/\s+/).filter(Boolean)) {
+      const t = line ? line + " " + w : w;
+      if (line && g.measureText(t).width > maxW) { out.push(line); line = w; } else line = t;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [""];
+  };
+  const center = (text, px, bold) => {
+    g.font = font(px, bold); g.direction = "rtl"; g.textAlign = "center";
+    for (const l of wrap(text, W)) { g.fillText(l, PW / 2, y); y += Math.round(px * 1.22); }
+  };
+  const right = (text, px, bold, indent) => {
+    indent = indent || 0;
+    g.font = font(px, bold); g.direction = "rtl"; g.textAlign = "right";
+    for (const l of wrap(text, W - indent)) { g.fillText(l, PW - M - indent, y); y += Math.round(px * 1.22); }
+  };
+  const pair = (rt, lt, px, bold) => {
+    g.font = font(px, bold); g.direction = "ltr"; g.textAlign = "left";
+    const lw = g.measureText(lt).width; g.fillText(lt, M, y);
+    g.direction = "rtl"; g.textAlign = "right";
+    for (const l of wrap(rt, W - lw - 24)) { g.fillText(l, PW - M, y); y += Math.round(px * 1.22); }
+  };
+  const hr = () => { y += 6; g.fillRect(M, y, W, 3); y += 14; };
+  if (again) {
+    g.fillRect(M, y, W, 46); g.fillStyle = "#fff"; g.font = font(30, true); g.direction = "rtl"; g.textAlign = "center";
+    g.fillText("העתק · نسخة", PW / 2, y + 7); g.fillStyle = "#000"; y += 56;
+  }
+  if (!o) {
+    center("הכנאפה של זוהר", 36, true);
+    center("דף ניסיון · ورقة تجربة", 30, false);
+    hr();
+    right("עברית: כנאפה עם נוטלה ופיסטוק", 30, false);
+    right("عربي: كنافة بالنوتيلا والفستق", 30, false);
+    hr();
+    pair("סה״כ", "123₪", 36, true);
+    center(new Date().toLocaleString("he-IL"), 26, false);
+  } else {
+    const d = new Date(o.created);
+    center("הכנאפה של זוהר", 34, true);
+    center("הזמנה מהאתר · איסוף עצמי", 26, false);
+    center("#" + o.no, 110, true);
+    center(hhmm(o.created) + " · " + d.getDate() + "/" + (d.getMonth() + 1), 28, false);
+    if (o.name || o.phone) center([o.name, o.phone].filter(Boolean).join(" · "), 32, true);
+    hr();
+    for (const x of o.lines) {
+      pair(x.q + "× " + x.n[0], x.p + "₪", 32, true);
+      for (const v of x.o[0]) right("• " + v, 28, false, 22);
+      y += 6;
+    }
+    hr();
+    if (o.note) { right("הערה: " + o.note, 32, true); hr(); }
+    pair("סה״כ", o.total + "₪", 38, true);
+    center("שולם · " + (PAYN[o.pay] || o.pay), 28, false);
+  }
+  y += 16;
+  // the printer's dots are taller than wide (203 x 180 dpi), so the picture is squeezed to keep letters in shape
+  const h = Math.min(c.height, Math.ceil(y)), h2 = Math.max(1, Math.round(h * 180 / 203));
+  const c2 = document.createElement("canvas"); c2.width = PW; c2.height = h2;
+  const g2 = c2.getContext("2d");
+  g2.fillStyle = "#fff"; g2.fillRect(0, 0, PW, h2); g2.drawImage(c, 0, 0, PW, h, 0, 0, PW, h2);
+  const px = g2.getImageData(0, 0, PW, h2).data;
+  const wb = PW / 8, bits = new Uint8Array(wb * h2);
+  for (let yy = 0; yy < h2; yy++) for (let xx = 0; xx < PW; xx++) {
+    const i = (yy * PW + xx) * 4;
+    if (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114 < 150) bits[yy * wb + (xx >> 3)] |= 0x80 >> (xx & 7);
+  }
+  // ESC @ (reset), the picture in bands (GS v 0), feed, cut
+  const parts = [[0x1b, 0x40]];
+  for (let y0 = 0; y0 < h2; y0 += 200) {
+    const bh = Math.min(200, h2 - y0);
+    parts.push([0x1d, 0x76, 0x30, 0, wb & 255, wb >> 8, bh & 255, bh >> 8], bits.subarray(y0 * wb, (y0 + bh) * wb));
+  }
+  parts.push([0x1b, 0x64, 4], [0x1d, 0x56, 0x42, 0]);
+  const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+  let off = 0; for (const p of parts) { out.set(p, off); off += p.length; }
+  return out;
+}
+const toB64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
+
 const api = LIVE ? remoteApi(API) : localApi();
 document.getElementById("demo").hidden = LIVE;
 
@@ -162,7 +354,7 @@ function card(o){
       <div class="tot"><span>סה״כ <small class="paid">שולם · مدفوع · ${esc(PAYN[o.pay] || o.pay)}</small></span><span>${o.total}₪</span></div>
       <div class="acts">${o.status === "ready"
         ? `<button type="button" class="dn" data-id="${esc(o.id)}" data-act="done">נאסף · استلم</button><button type="button" class="undo" data-id="${esc(o.id)}" data-act="reopen">↩</button>`
-        : `<button type="button" class="rdy" data-id="${esc(o.id)}" data-act="ready">מוכן ✅ جاهز</button>`}</div>
+        : `<button type="button" class="rdy" data-id="${esc(o.id)}" data-act="ready">מוכן ✅ جاهز</button>`}${LIVE && printer ? `<button type="button" class="reprint" data-id="${esc(o.id)}" data-print="1" aria-label="הדפסה · طباعة">🖨️</button>` : ""}</div>
     </article>`;
 }
 /* unpaid orders: only the number, the customer and the amount; the kitchen does not see them */
@@ -198,12 +390,23 @@ async function refresh(){
     seen = new Set(list.map(o => o.id + o.status));
     orders = list; draw();
     if (fresh.length) beep();
+    autoPrintNew(list);
   } catch(e){
     if (e.code === "unauthorized") { api.logout(); showLogin(); return; }
     document.getElementById("net").hidden = false;
   }
 }
 document.getElementById("list").addEventListener("click", async e => {
+  const pb = e.target.closest("button[data-print]");
+  if (pb) {
+    pb.disabled = true;
+    const o = orders.find(x => x.id === pb.dataset.id);
+    const ok = !!o && await printTicket(o, true);
+    pb.textContent = ok ? "✓" : "✗";
+    if (!ok) showPrintErr();
+    setTimeout(() => { pb.disabled = false; pb.textContent = "🖨️"; }, 1800);
+    return;
+  }
   const b = e.target.closest("button[data-act]"); if (!b) return;
   b.disabled = true; busy = true;
   try { const o = await api.act(b.dataset.id, b.dataset.act); orders = orders.map(x => x.id === o.id ? Object.assign({}, x, o) : x); seen && seen.add(o.id + o.status); draw(); }
@@ -224,7 +427,7 @@ function beep(){
 
 /* sign-in with the shop's PIN (only with the server) */
 const loginForm = document.getElementById("login");
-function showLogin(){ shopBtn.hidden = true; loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
+function showLogin(){ shopBtn.hidden = true; prnBtn.hidden = true; panel.hidden = true; loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   const err = document.getElementById("lerr"); err.textContent = "";

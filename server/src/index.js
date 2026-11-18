@@ -1,5 +1,6 @@
 // Cloudflare Worker: the public API for orders. One Durable Object per shop keeps its orders in SQLite.
 import { DurableObject } from "cloudflare:workers";
+import { connect } from "cloudflare:sockets";
 import { handle, migrate } from "./app.js";
 import { SHOP } from "./menu.js";
 
@@ -59,6 +60,24 @@ export default {
   }
 };
 
+/** Rejects if p does not settle within ms; the timer is cleared either way. */
+function within(p, ms) {
+  let t;
+  return Promise.race([p, new Promise((_, no) => { t = setTimeout(() => no(new Error("timeout")), ms); })]).finally(() => clearTimeout(t));
+}
+/** Sends raw printer bytes to the kitchen printer over TCP (port 9100 behind the shop's router). */
+async function sendToPrinter(hostname, port, bytes) {
+  const socket = connect({ hostname, port });
+  try {
+    await within(socket.opened, 7000);
+    const w = socket.writable.getWriter();
+    await within(w.write(bytes), 15000);
+    await within(w.close(), 5000);
+  } finally {
+    socket.close().catch(() => {});
+  }
+}
+
 export class Shop extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
@@ -66,6 +85,6 @@ export class Shop extends DurableObject {
     ctx.blockConcurrencyWhile(async () => migrate(this.sql));
   }
   async fetch(req) {
-    return handle(req, this.sql, this.env);
+    return handle(req, this.sql, this.env, Date.now(), { print: sendToPrinter });
   }
 }

@@ -12,7 +12,7 @@ const call = async (method, path, body, headers = {}) => {
   const r = await handle(new Request("https://shop" + path, {
     method, headers: { "Content-Type": "application/json", "X-Client-IP": headers.ip || "1.1.1.1", ...headers },
     body: body === undefined ? undefined : JSON.stringify(body)
-  }), sql, env, now);
+  }), sql, env, now, io);
   return { status: r.status, body: await r.json() };
 };
 
@@ -20,6 +20,9 @@ const byName = he => Object.entries(MENU).find(([, it]) => it.n[0] === he);
 const [knafehId, knafeh] = byName("כנאפה זוגי");
 const [drinkId, drink] = Object.entries(MENU).find(([, it]) => !it.o.length && !it.off);
 const [offId] = Object.entries(MENU).find(([, it]) => it.off);
+const printed = [];
+let printerUp = true;
+const io = { async print(host, port, bytes) { if (!printerUp) throw new Error("down"); printed.push({ host, port, n: bytes.length }); } };
 let passed = 0;
 const test = async (name, fn) => { await fn(); passed++; console.log("ok -", name); };
 
@@ -130,6 +133,39 @@ await test("old orders are deleted after 30 days", async () => {
 
 await test("every option price in the menu is a whole number", async () => {
   for (const g of Object.values(GROUPS)) for (const v of g.v) assert.ok(Number.isInteger(v[3]));
+});
+
+await test("kitchen printer: address, printing once, printing again, printer down", async () => {
+  const { token } = (await call("POST", "/api/staff/login", { pin: "482913" }, { ip: "9.9.9.9" })).body;
+  const auth = { Authorization: "Bearer " + token, ip: "77.125.10.20" };
+  const ticket = btoa(String.fromCharCode(0x1b, 0x40, 0x1d, 0x76, 0x30, 0, 1, 0, 1, 0, 0xff));
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket }, auth)).body.error, "no_printer");
+  assert.equal((await call("POST", "/api/staff/printer", { useMyIp: true, port: 25 }, auth)).body.error, "bad_port");
+  assert.equal((await call("POST", "/api/staff/printer", { host: "bad host!", port: 9100 }, auth)).body.error, "bad_host");
+  assert.equal((await call("POST", "/api/staff/printer", { useMyIp: true, port: 47913 }, { ...auth, ip: "2a02:6680::1" })).body.error, "ipv6");
+  const set = await call("POST", "/api/staff/printer", { useMyIp: true, port: 47913 }, auth);
+  assert.deepEqual(set.body.printer, { host: "77.125.10.20", port: 47913 });
+  assert.deepEqual((await call("GET", "/api/staff/orders", undefined, auth)).body.printer, { host: "77.125.10.20", port: 47913 });
+  assert.equal((await call("POST", "/api/staff/print", { data: btoa("hello") }, auth)).body.error, "bad_data");
+  // a test page (no order)
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket }, auth)).body.ok, true);
+  assert.equal(printed.at(-1).host, "77.125.10.20");
+  // an unpaid order is not printed
+  now += 3600000;
+  const o = (await call("POST", "/api/orders", { items: [{ id: drinkId, q: 1 }], name: "רנא", pay: "bit" }, { ip: "5.5.5.5" })).body;
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket, id: o.id }, auth)).body.error, "not_paid");
+  await call("POST", `/api/staff/orders/${o.id}/paid`, {}, auth);
+  // printer down: the order stays unprinted so it is tried again
+  printerUp = false;
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket, id: o.id }, auth)).body.error, "printer_unreachable");
+  assert.equal((await call("GET", "/api/staff/orders", undefined, auth)).body.orders.find(x => x.id === o.id).printed, 0);
+  printerUp = true;
+  const n = printed.length;
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket, id: o.id }, auth)).body.ok, true);
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket, id: o.id }, auth)).body.skipped, true);
+  assert.equal((await call("POST", "/api/staff/print", { data: ticket, id: o.id, again: true }, auth)).body.ok, true);
+  assert.equal(printed.length, n + 2);
+  assert.equal((await call("POST", "/api/staff/printer", { clear: true }, auth)).body.printer, null);
 });
 
 console.log(`\n${passed} tests passed`);
