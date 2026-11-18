@@ -1,0 +1,21 @@
+name = "zohars-knafeh-orders"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+[vars]
+# the shop's own pages that may place orders and use the shop screen
+ALLOWED_ORIGINS = "https://abdalrhman-source.github.io"
+# payment methods accepted right now; card / apple / google are added once a payment company is connected
+PAY_METHODS = "bit"
+
+[[durable_objects.bindings]]
+name = "SHOP"
+class_name = "Shop"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Shop"]
+
+[triggers]
+crons = ["17 2 * * *"]
