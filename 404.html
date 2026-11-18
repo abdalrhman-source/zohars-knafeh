@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>הכנאפה של זוהר</title>
+<script>
+/* a mistyped address (capital letters, a missing slash, spaces) still reaches the right page */
+(function () {
+  var p = decodeURIComponent(location.pathname).toLowerCase().replace(/\s+/g, "");
+  var base = "/zohars-knafeh/", to = base;
+  if (p.indexOf("staff") > -1) to = base + "order/staff/";
+  else if (p.indexOf("order") > -1) to = base + "order/";
+  location.replace(to + location.search + location.hash);
+})();
+</script>
+<style>body{background:#2E2D32;color:#F2EFE8;font-family:system-ui,sans-serif;text-align:center;padding:60px 20px}a{color:#D1B06D}</style>
+</head>
+<body><a href="/zohars-knafeh/">הכנאפה של זוהר · كنافة زوهر</a></body>
+</html>
