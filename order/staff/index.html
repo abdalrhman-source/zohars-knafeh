@@ -169,7 +169,7 @@
 <section id="mkt" hidden>
   <div class="mbar" id="mpend" hidden><span id="mpendT"></span><button type="button" class="mbtn" id="mpendGo">הוספה · إضافة</button><button type="button" class="mbtn ghost" id="mpendNo">ביטול · لا</button></div>
   <div class="mcard">
-    <div class="mhead"><h3>לידים · العملاء المحتملين <b id="mcount"></b></h3>
+    <div class="mhead"><h3>חשבונות אינסטגרם · حسابات انستا <b id="mcount"></b></h3>
       <button type="button" class="mbtn" id="mxlsx">Excel ⬇</button>
       <button type="button" class="mbtn ghost" id="maddBtn">+ הוספה · إضافة</button></div>
     <div id="madd" hidden>
@@ -183,7 +183,7 @@
     <div id="mlist"></div>
   </div>
   <div class="mcard">
-    <h3>חיפוש לידים עם Claude · دوّر على عملاء مع Claude</h3>
+    <h3>חיפוש חשבונות אינסטגרם עם Claude · دوّر على حسابات انستا مع Claude</h3>
     <p>כתבו מה מחפשים. Claude יחפש באינסטגרם ויחזיר טבלה; מעתיקים אותה ומדביקים ב«הוספה» למעלה · اكتب شو بدك، Claude بدوّر بإنستغرام وبرجّعلك جدول، بتنسخه وبتلصقه بـ«إضافة» فوق</p>
     <textarea id="mq" spellcheck="false"></textarea>
     <div class="prow"><button type="button" class="mbtn" id="mgo">פתיחת Claude · افتح Claude</button><button type="button" class="mbtn ghost" id="mqReset">ברירת מחדל · رجّع الشروط</button></div>
@@ -517,7 +517,7 @@ async function ticketBytes(o, again){
 const toB64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
 
 const api = LIVE ? remoteApi(API) : localApi();
-const BUILD = "449c11c5f5";
+const BUILD = "9597cfd5ab";
 let selfReload = false;
 /* on the printing computer, closing this page stops kitchen printing, so the browser asks before closing it */
 window.addEventListener("beforeunload", e => {
@@ -662,7 +662,7 @@ function drawLeads(){
       ${l.contact || l.note ? `<div class="meta">${[l.contact, l.note].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
       <div class="la">${dm ? `<a href="${esc(dm)}" target="_blank" rel="noopener">${l.platform === "instagram" ? "הודעה · رسالة" : "פרופיל · البروفايل"}</a>` : ""}<button type="button" class="del" data-del="${esc(l.id)}">מחיקה · حذف</button></div>
     </div>`;
-  }).join("") : `<div class="mempty">${leads.length ? "אין תוצאות · ما في نتائج" : "עוד אין לידים. לחצו «הוספה» או חפשו עם Claude · لسا ما في عملاء: اضغط «إضافة» أو دوّر مع Claude"}</div>`;
+  }).join("") : `<div class="mempty">${leads.length ? "אין תוצאות · ما في نتائج" : "עוד אין חשבונות. לחצו «הוספה» או חפשו עם Claude · لسا ما في حسابات انستا: اضغط «إضافة» أو دوّر مع Claude"}</div>`;
 }
 document.getElementById("mfl").addEventListener("click", e => { const b = e.target.closest("button[data-f]"); if (b) { mFilter = b.dataset.f; drawLeads(); } });
 document.getElementById("mfind").addEventListener("input", drawLeads);
@@ -682,7 +682,7 @@ document.getElementById("maddBtn").addEventListener("click", () => { const a = d
 
 /* pasted tables: from Claude (CSV), from Excel / Numbers (tabs), markdown tables, or just @accounts */
 const COLS = {
-  name: ["name", "lead name", "lead", "اسم", "الاسم", "اسم العميل", "שם"], account: ["account", "handle", "username", "user", "instagram", "حساب", "الحساب", "يوزر", "חשבון"],
+  name: ["name", "lead name", "lead", "اسم", "الاسم", "اسم العميل", "اسم الحساب", "שם"], account: ["account", "handle", "username", "user", "instagram", "حساب", "الحساب", "يوزر", "חשבון"],
   content: ["content", "content type", "type", "type of content", "category", "نوع المحتوى", "المحتوى", "المجال", "סוג תוכן"],
   contact: ["contact", "contact type", "type of contact", "التواصل", "طريقة التواصل", "יצירת קשר"], followers: ["followers", "المتابعين", "متابعين", "עוקבים"],
   views: ["views", "avg views", "avg reel views", "average views", "المشاهدات", "متوسط المشاهدات", "متوسط مشاهدات الريلز", "צפיות"],
@@ -763,7 +763,7 @@ function offerImport(){
   if (!pendingImport) return;
   showTab("mkt");
   document.getElementById("mpend").hidden = false;
-  document.getElementById("mpendT").textContent = `${pendingImport.length} לידים מוכנים להוספה · ${pendingImport.length} عميل جاهزين للإضافة`;
+  document.getElementById("mpendT").textContent = `${pendingImport.length} חשבונות אינסטגרם מוכנים להוספה · ${pendingImport.length} حساب انستا جاهزين للإضافة`;
 }
 document.getElementById("mpendGo").addEventListener("click", async () => {
   const list = pendingImport; if (!list) return;
@@ -820,7 +820,7 @@ function xlsxBlob(header, rows, widths){
     ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
     ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets><sheet name="Leads" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">Leads!$A$1:$${col(header.length - 1)}$${rows.length + 1}</definedName></definedNames></workbook>`],
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets><sheet name="Instagram" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">Instagram!$A$1:$${col(header.length - 1)}$${rows.length + 1}</definedName></definedNames></workbook>`],
     ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
     ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -828,7 +828,7 @@ function xlsxBlob(header, rows, widths){
     ["xl/worksheets/sheet1.xml", sheet]
   ]);
 }
-const LEAD_HEAD = ["Lead name · اسم العميل", "Account · الحساب", "Content type · نوع المحتوى", "Contact · التواصل", "Status · الحالة", "Followers · المتابعين",
+const LEAD_HEAD = ["Name · الاسم", "Account · الحساب", "Content type · نوع المحتوى", "Contact · التواصل", "Status · الحالة", "Followers · المتابعين",
   "Avg reel views · متوسط المشاهدات", "Country · الدولة", "Platform · المنصة", "Notes · ملاحظات", "Source · المصدر", "Added · تاريخ الإضافة"];
 function leadsXlsx(list){
   const day = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
@@ -839,8 +839,8 @@ function leadsXlsx(list){
 }
 document.getElementById("mxlsx").addEventListener("click", async () => {
   const list = leads.filter(l => mFilter === "all" || l.status === mFilter);
-  if (!list.length) { mmsg.textContent = "אין לידים להורדה · ما في عملاء للتنزيل"; return; }
-  const d = new Date(), name = `leads-knafehzohar-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.xlsx`;
+  if (!list.length) { mmsg.textContent = "אין חשבונות להורדה · ما في حسابات للتنزيل"; return; }
+  const d = new Date(), name = `insta-accounts-knafehzohar-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.xlsx`;
   const blob = leadsXlsx(list);
   // phones: the share sheet (Save to Files, WhatsApp, Excel); computers: a normal download
   if (IS_MOBILE && typeof File === "function" && navigator.canShare) {
