@@ -19,6 +19,11 @@ export function migrate(sql) {
   sql.exec(`CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY, v TEXT)`);
   // printed: 0 = not printed yet, 1 = printed in the kitchen, 2 = print again (asked from any shop screen)
   try { sql.exec(`ALTER TABLE orders ADD COLUMN printed INTEGER NOT NULL DEFAULT 0`); } catch { /* column already there */ }
+  // marketing: people to reach (influencers found on Instagram and the like); only the shop screen sees them
+  sql.exec(`CREATE TABLE IF NOT EXISTS leads(
+    id TEXT PRIMARY KEY, platform TEXT, handle TEXT, name TEXT, content TEXT, contact TEXT, status TEXT,
+    followers INTEGER, views INTEGER, country TEXT, note TEXT, source TEXT, created INTEGER, updated INTEGER,
+    UNIQUE(platform, handle))`);
 }
 
 const json = (data, status = 200) => new Response(JSON.stringify(data), {
@@ -35,6 +40,40 @@ const printerTarget = sql => {
 const MAX_PRINT_BYTES = 300000;
 /** Online ordering stays closed until someone signed in to the shop screen opens it. */
 const isOpen = sql => (rows(sql, `SELECT v FROM settings WHERE k = 'open'`)[0] || {}).v === "1";
+/* ---------- marketing leads ---------- */
+const LEAD_STATUS = ["new", "contacted", "replied", "deal", "no"];
+const LEAD_PLATFORMS = ["instagram", "tiktok", "facebook", "snapchat", "x", "youtube", "other"];
+const MAX_LEADS = 3000, MAX_LEADS_PER_IMPORT = 500;
+const clip = (v, n) => String(v ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+/** 12,345 / 12.3K / 1.2M -> a whole number; anything else -> null */
+function count(v) {
+  if (typeof v === "number") return Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+  const m = /^([0-9][0-9,]*(?:\.[0-9]+)?)\s*([kKmM])?$/.exec(String(v ?? "").trim());
+  if (!m) return null;
+  const n = parseFloat(m[1].replace(/,/g, "")) * (m[2] ? (/k/i.test(m[2]) ? 1e3 : 1e6) : 1);
+  return Number.isFinite(n) && n < 1e11 ? Math.round(n) : null;
+}
+/** "@name", "instagram.com/name", "https://www.tiktok.com/@name" -> {platform, handle} */
+function leadAccount(account, platform) {
+  let a = clip(account, 200), p = LEAD_PLATFORMS.includes(platform) ? platform : "";
+  const url = /^(?:https?:\/\/)?(?:www\.|m\.)?(instagram\.com|tiktok\.com|facebook\.com|snapchat\.com|x\.com|twitter\.com|youtube\.com)\/(?:add\/)?@?([^/?#\s]+)/i.exec(a);
+  if (url) {
+    const site = url[1].toLowerCase();
+    p = { "instagram.com": "instagram", "tiktok.com": "tiktok", "facebook.com": "facebook", "snapchat.com": "snapchat", "x.com": "x", "twitter.com": "x", "youtube.com": "youtube" }[site];
+    a = url[2];
+  }
+  p = p || "instagram";
+  a = a.replace(/^@/, "");
+  if (p === "other") return a ? { platform: p, handle: a.slice(0, 100) } : null;
+  a = a.toLowerCase();
+  return /^[a-z0-9._-]{1,60}$/.test(a) ? { platform: p, handle: a } : null;
+}
+const leadView = l => ({
+  id: l.id, platform: l.platform, handle: l.handle, name: l.name, content: l.content, contact: l.contact, status: l.status,
+  followers: l.followers, views: l.views, country: l.country, note: l.note, source: l.source, created: l.created, updated: l.updated
+});
+const allLeads = sql => rows(sql, `SELECT * FROM leads ORDER BY created DESC, followers DESC`).map(leadView);
+
 const dayKey = now => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem" }).format(new Date(now));
 
 /** Counts a hit for key k; false when k already has `limit` hits inside the window. */
@@ -97,7 +136,8 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
   let body = {};
   if (req.method === "POST") {
     const text = await req.text();
-    if (text.length > (path === "/api/staff/print" ? MAX_PRINT_BYTES * 1.4 + 2000 : 16000)) return json({ error: "too_large" }, 413);
+    const limit = path === "/api/staff/print" ? MAX_PRINT_BYTES * 1.4 + 2000 : path === "/api/staff/leads" ? 400000 : 16000;
+    if (text.length > limit) return json({ error: "too_large" }, 413);
     try { body = text ? JSON.parse(text) : {}; } catch { return json({ error: "bad_json" }, 400); }
     if (!body || typeof body !== "object" || Array.isArray(body)) return json({ error: "bad_json" }, 400);
   }
@@ -220,6 +260,47 @@ export async function handle(req, sql, env, now = Date.now(), io = {}) {
       if (typeof body.open !== "boolean") return json({ error: "bad_request" }, 400);
       sql.exec(`INSERT INTO settings(k, v) VALUES ('open', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v`, body.open ? "1" : "0");
       return json({ open: isOpen(sql) });
+    }
+    if (path === "/api/staff/leads" && req.method === "GET") return json({ leads: allLeads(sql) });
+    if (path === "/api/staff/leads" && req.method === "POST") {
+      // adds new leads and fills in what is known about ones already on the list (matched by platform and account)
+      if (!Array.isArray(body.leads) || !body.leads.length || body.leads.length > MAX_LEADS_PER_IMPORT) return json({ error: "bad_request" }, 400);
+      let added = 0, updated = 0, skipped = 0;
+      let [{ c: total }] = rows(sql, `SELECT COUNT(*) AS c FROM leads`);
+      for (const x of body.leads) {
+        const acc = x && typeof x === "object" ? leadAccount(x.account ?? x.handle, x.platform) : null;
+        if (!acc) { skipped++; continue; }
+        const f = {
+          name: clip(x.name, 120), content: clip(x.content, 120), contact: clip(x.contact, 120), country: clip(x.country, 80),
+          note: clip(x.note, 500), source: clip(x.source, 80), followers: count(x.followers), views: count(x.views),
+          status: LEAD_STATUS.includes(x.status) ? x.status : null
+        };
+        const old = rows(sql, `SELECT * FROM leads WHERE platform = ? AND handle = ?`, acc.platform, acc.handle)[0];
+        if (old) {
+          sql.exec(`UPDATE leads SET name = ?, content = ?, contact = ?, country = ?, note = ?, source = ?, followers = ?, views = ?, status = ?, updated = ? WHERE id = ?`,
+            f.name || old.name, f.content || old.content, f.contact || old.contact, f.country || old.country, f.note || old.note,
+            f.source || old.source, f.followers ?? old.followers, f.views ?? old.views, f.status || old.status, now, old.id);
+          updated++;
+        } else {
+          if (total >= MAX_LEADS) { skipped++; continue; }
+          sql.exec(`INSERT INTO leads(id, platform, handle, name, content, contact, status, followers, views, country, note, source, created, updated)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            crypto.randomUUID(), acc.platform, acc.handle, f.name, f.content, f.contact, f.status || "new", f.followers, f.views, f.country, f.note, f.source, now, now);
+          added++; total++;
+        }
+      }
+      return json({ added, updated, skipped, leads: allLeads(sql) });
+    }
+    m = /^\/api\/staff\/leads\/([0-9a-f-]{36})(\/delete)?$/.exec(path);
+    if (m && req.method === "POST") {
+      const l = rows(sql, `SELECT * FROM leads WHERE id = ?`, m[1])[0];
+      if (!l) return json({ error: "not_found" }, 404);
+      if (m[2]) { sql.exec(`DELETE FROM leads WHERE id = ?`, l.id); return json({ ok: true }); }
+      if (body.status !== undefined && !LEAD_STATUS.includes(body.status)) return json({ error: "bad_request" }, 400);
+      const v = k => body[k] === undefined ? l[k] : clip(body[k], k === "note" ? 500 : 120);
+      sql.exec(`UPDATE leads SET status = ?, name = ?, content = ?, contact = ?, note = ?, updated = ? WHERE id = ?`,
+        body.status ?? l.status, v("name"), v("content"), v("contact"), v("note"), now, l.id);
+      return json(leadView(rows(sql, `SELECT * FROM leads WHERE id = ?`, l.id)[0]));
     }
     m = /^\/api\/staff\/orders\/([0-9a-f-]{36})\/(reprint|claim)$/.exec(path);
     if (m && req.method === "POST") {
