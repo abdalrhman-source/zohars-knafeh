@@ -99,44 +99,6 @@
   .login input{font:inherit;font-size:22px;letter-spacing:6px;text-align:center;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
   .login button{font:inherit;font-size:16px;font-weight:800;padding:12px;border:0;border-radius:12px;background:var(--gold);color:#2B2A2E;cursor:pointer}
   .lerr{color:#E8A0A0;font-size:14px;min-height:18px}
-  /* ---------- tabs and marketing ---------- */
-  .tabs{display:flex;gap:6px;margin:12px 16px 0}
-  .tabs button{font-size:15px;font-weight:800;padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--muted)}
-  .tabs button.on{background:var(--gold);border-color:var(--gold);color:#2B2A2E}
-  .tabs[hidden],#mkt[hidden],main[hidden],.mcard [hidden],.mbar[hidden]{display:none}
-  #mkt{padding:12px 16px 40px;display:grid;gap:12px;max-width:920px}
-  .mcard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;display:grid;gap:10px;min-width:0}
-  .mcard h3{font-size:16px}
-  .mcard p{font-size:13px;color:var(--muted);line-height:1.55}
-  .mcard textarea{font:inherit;font-size:15px;line-height:1.5;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);min-height:130px;resize:vertical;width:100%}
-  .mbtn{font:inherit;font-size:14px;font-weight:800;padding:10px 14px;border-radius:10px;border:0;background:var(--gold);color:#2B2A2E;text-decoration:none;display:inline-block}
-  .mbtn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
-  .ads{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-  .ads a{display:block;padding:11px 12px;border-radius:12px;border:1px solid var(--line);background:var(--bg);color:var(--ink);text-decoration:none;font-weight:700;font-size:14px}
-  .ads a small{display:block;font-weight:500;font-size:12px;color:var(--muted);margin-top:2px}
-  .mhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .mhead h3{margin-inline-end:auto}
-  .mhead h3 b{color:var(--gold)}
-  .fl{display:flex;gap:6px;flex-wrap:wrap}
-  .fl button{font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted)}
-  .fl button.on{border-color:var(--gold);color:var(--gold)}
-  .msearch{font:inherit;font-size:15px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
-  .lead{border-top:1px solid var(--line);padding:10px 0 4px;display:grid;gap:4px}
-  .lead .l1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  .lead .l1 b{font-size:15.5px}
-  .acc{color:var(--gold);text-decoration:none;direction:ltr;unicode-bidi:isolate;font-size:14px}
-  .lead .meta{font-size:13px;color:var(--muted);line-height:1.5}
-  .lead select{margin-inline-start:auto;font:inherit;font-size:13px;font-weight:700;padding:5px 8px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
-  .lead select[data-s=contacted]{border-color:#E8B04B;color:#E8B04B}
-  .lead select[data-s=replied]{border-color:#0FB8C2;color:#7FDDE3}
-  .lead select[data-s=deal]{border-color:var(--green);color:#B9E0A5}
-  .lead select[data-s=no]{color:var(--muted)}
-  .lead .la{display:flex;gap:8px;flex-wrap:wrap}
-  .lead .la a,.lead .la button{font:inherit;font-size:13px;font-weight:700;padding:6px 10px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--ink);text-decoration:none}
-  .lead .la button.del{color:#E8A0A0;margin-inline-start:auto}
-  .mbar{padding:10px 12px;border-radius:12px;background:rgba(209,176,109,.15);border:1px solid var(--gold);display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14px;font-weight:700}
-  .mmsg{font-size:13.5px;min-height:18px}
-  .mempty{color:var(--muted);text-align:center;padding:24px 0;font-size:14px}
 </style>
 </head>
 <body>
@@ -147,7 +109,6 @@
   <button type="button" class="prn" id="prn" hidden></button>
   <button type="button" class="snd" id="snd"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6v-5a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg>צליל · صوت</button>
 </header>
-<nav class="tabs" id="tabs" hidden><button type="button" class="on" data-tab="orders">הזמנות · الطلبات</button><button type="button" data-tab="mkt">שיווק · التسويق</button></nav>
 <div class="demo" id="demo">גרסת ניסיון · עובד רק באותו מכשיר שבו נשלחה ההזמנה · نسخة تجربة: بتشتغل بس على نفس الجهاز اللي انبعت منه الطلب</div>
 <section class="panel" id="ppanel" hidden>
   <h3><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v4H7zM5 8h14a2 2 0 0 1 2 2v6h-4v4H7v-4H3v-6a2 2 0 0 1 2-2zm4 7v3h6v-3zm8-4.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>מדפסת המטבח · طابعة المطبخ</h3>
@@ -166,41 +127,6 @@
   <div class="lerr" id="lerr"></div>
 </form>
 <main id="list"></main>
-<section id="mkt" hidden>
-  <div class="mbar" id="mpend" hidden><span id="mpendT"></span><button type="button" class="mbtn" id="mpendGo">הוספה · إضافة</button><button type="button" class="mbtn ghost" id="mpendNo">ביטול · لا</button></div>
-  <div class="mcard">
-    <div class="mhead"><h3>חשבונות אינסטגרם · حسابات انستا <b id="mcount"></b></h3>
-      <button type="button" class="mbtn" id="mxlsx">Excel ⬇</button>
-      <button type="button" class="mbtn ghost" id="maddBtn">+ הוספה · إضافة</button></div>
-    <div id="madd" hidden>
-      <p>הדביקו טבלה מ-Claude או מאקסל (שם, חשבון, סוג תוכן, יצירת קשר, עוקבים, צפיות, מדינה, הערות), או רק @חשבונות, אחד בשורה · الصق جدول من Claude أو من Excel (الاسم، الحساب، نوع المحتوى، التواصل، المتابعين، المشاهدات، الدولة، ملاحظات)، أو بس @حسابات، كل واحد بسطر</p>
-      <textarea id="mpaste" placeholder="@account" spellcheck="false"></textarea>
-      <div class="prow"><button type="button" class="mbtn" id="mpasteGo">הוספה לרשימה · ضيف عالقائمة</button><label class="mbtn ghost">קובץ CSV · ملف CSV<input type="file" id="mfile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden></label></div>
-    </div>
-    <div class="mmsg" id="mmsg"></div>
-    <div class="fl" id="mfl"></div>
-    <input class="msearch" id="mfind" type="search" placeholder="חיפוש · دوّر (اسم، حساب، دولة…)" autocomplete="off">
-    <div id="mlist"></div>
-  </div>
-  <div class="mcard">
-    <h3>חיפוש חשבונות אינסטגרם עם Claude · دوّر على حسابات انستا مع Claude</h3>
-    <p>כתבו מה מחפשים. Claude יחפש באינסטגרם ויחזיר טבלה; מעתיקים אותה ומדביקים ב«הוספה» למעלה · اكتب شو بدك، Claude بدوّر بإنستغرام وبرجّعلك جدول، بتنسخه وبتلصقه بـ«إضافة» فوق</p>
-    <textarea id="mq" spellcheck="false"></textarea>
-    <div class="prow"><button type="button" class="mbtn" id="mgo">פתיחת Claude · افتح Claude</button><button type="button" class="mbtn ghost" id="mqReset">ברירת מחדל · رجّع الشروط</button></div>
-  </div>
-  <div class="mcard">
-    <h3>קמפיין ממומן · إعلان ممول</h3>
-    <div class="ads">
-      <a href="https://adsmanager.facebook.com/" target="_blank" rel="noopener">Meta Ads Manager<small>Instagram + Facebook</small></a>
-      <a href="https://business.facebook.com/latest/ad_center/" target="_blank" rel="noopener">Meta Business Suite<small>קידום פוסט · ترويج بوست</small></a>
-      <a href="https://ads.tiktok.com/" target="_blank" rel="noopener">TikTok Ads Manager<small>TikTok</small></a>
-      <a href="https://ads.google.com/" target="_blank" rel="noopener">Google Ads<small>Google + YouTube</small></a>
-      <a href="https://ads.snapchat.com/" target="_blank" rel="noopener">Snapchat Ads<small>Snapchat</small></a>
-      <a href="https://ads.x.com/" target="_blank" rel="noopener">X Ads<small>X / Twitter</small></a>
-      <a href="https://business.google.com/" target="_blank" rel="noopener">Google Business<small>גוגל מפות · خرائط جوجل</small></a>
-    </div>
-  </div>
-</section>
 <div id="printArea"></div>
 <script>
 const API = "https://zohars-knafeh-orders.abdalrhmanmanasra11.workers.dev";
@@ -253,10 +179,6 @@ function remoteApi(base){
     reprint: id => req(`/api/staff/orders/${encodeURIComponent(id)}/reprint`, {method: "POST", body: "{}"}),
     claim: id => req(`/api/staff/orders/${encodeURIComponent(id)}/claim`, {method: "POST", body: "{}"}),
     setOpen: open => req("/api/staff/open", {method: "POST", body: JSON.stringify({open})}),
-    leads: () => req("/api/staff/leads"),
-    leadsAdd: list => req("/api/staff/leads", {method: "POST", body: JSON.stringify({leads: list})}),
-    leadSet: (id, body) => req(`/api/staff/leads/${encodeURIComponent(id)}`, {method: "POST", body: JSON.stringify(body)}),
-    leadDel: id => req(`/api/staff/leads/${encodeURIComponent(id)}/delete`, {method: "POST", body: "{}"}),
     act: (id, action) => req(`/api/staff/orders/${encodeURIComponent(id)}/${action}`, {method: "POST", body: "{}"})
   };
 }
@@ -517,7 +439,7 @@ async function ticketBytes(o, again){
 const toB64 = bytes => { let s = ""; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); };
 
 const api = LIVE ? remoteApi(API) : localApi();
-const BUILD = "9597cfd5ab";
+const BUILD = "b679539e7d";
 let selfReload = false;
 /* on the printing computer, closing this page stops kitchen printing, so the browser asks before closing it */
 window.addEventListener("beforeunload", e => {
@@ -527,7 +449,7 @@ window.addEventListener("beforeunload", e => {
 if (LIVE) setInterval(async () => {
   try {
     const v = (await (await fetch("version.txt?t=" + Date.now(), {cache: "no-store"})).text()).trim();
-    if (v && v !== BUILD && !printing.size && !testBusy && panel.hidden && mktEl.hidden) { selfReload = true; location.reload(); }
+    if (v && v !== BUILD && !printing.size && !testBusy && panel.hidden) { selfReload = true; location.reload(); }
   } catch(e){}
 }, 3 * 60000);
 document.getElementById("demo").hidden = LIVE;
@@ -614,257 +536,16 @@ function beep(){
     o.connect(g).connect(actx.destination); o.start(actx.currentTime + off); o.stop(actx.currentTime + off + .22); }); } catch(e){}
 }
 
-/* ---------- marketing: leads list, Excel, search with Claude ---------- */
-const mktEl = document.getElementById("mkt"), tabsEl = document.getElementById("tabs"), listEl = document.getElementById("list");
-const ST = {new: "חדש · جديد", contacted: "פנינו · تواصلنا", replied: "ענה · ردّ", deal: "סגרנו · اتفقنا", no: "לא · رفض"};
-const PLAT = {instagram: "Instagram", tiktok: "TikTok", facebook: "Facebook", snapchat: "Snapchat", x: "X", youtube: "YouTube", other: ""};
-const MQ_KEY = "zk-mkt-q";
-const MQ_DEFAULT = "دوّر لي بإنستغرام على حسابات مؤثرين بهاي الشروط:\n- من دول الخليج (السعودية، الإمارات، الكويت، قطر، البحرين، عُمان)\n- أكثر من 100 ألف متابع\n- ما في رابط بالبايو\n- آخر ريل نزل خلال آخر 30 يوم\n- متوسط مشاهدات الريلز 3% من المتابعين أو أكثر\nبدي 20 حساب.";
-const MQ_TAIL = "\n\nبالآخر اعطيني النتيجة بصيغة CSV داخل code block، أول سطر فيه أسماء الأعمدة بالإنجليزي بهاد الترتيب: name,account,content,contact,followers,views,country,notes (الأرقام بدون فواصل؛ account = @الحساب، content = نوع المحتوى، contact = طريقة التواصل، followers = عدد المتابعين، views = متوسط مشاهدات الريلز). عشان ألصقها بموقع المحل.";
-let leads = [], leadsLoaded = false, mFilter = "all", pendingImport = null;
-const mmsg = document.getElementById("mmsg");
-const fmtN = n => n == null ? "" : n >= 1e6 ? (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, "") + "M" : n >= 1e3 ? Math.round(n / 1e3) + "K" : String(n);
-function profileUrl(l){
-  const h = encodeURIComponent(l.handle);
-  return {instagram: `https://www.instagram.com/${h}/`, tiktok: `https://www.tiktok.com/@${h}`, facebook: `https://www.facebook.com/${h}`,
-          snapchat: `https://www.snapchat.com/add/${h}`, x: `https://x.com/${h}`, youtube: `https://www.youtube.com/@${h}`}[l.platform] || "";
-}
-function showTab(t){
-  const m = t === "mkt";
-  mktEl.hidden = !m; listEl.hidden = m;
-  if (m) panel.hidden = true;
-  tabsEl.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
-  if (m && !leadsLoaded) loadLeads();
-}
-tabsEl.addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) showTab(b.dataset.tab); });
-function mErr(e){
-  if (e.code === "unauthorized") { api.logout(); showLogin(); return; }
-  mmsg.textContent = e.code === "net" ? PERR.net : e.code === "too_large" ? "יותר מדי בפעם אחת · كتير مرة وحدة" : PERR.other;
-}
-async function loadLeads(){
-  try { leads = (await api.leads()).leads; leadsLoaded = true; drawLeads(); } catch(e){ mErr(e); }
-}
-function drawLeads(){
-  document.getElementById("mcount").textContent = leads.length ? "(" + leads.length + ")" : "";
-  const counts = {all: leads.length}; leads.forEach(l => counts[l.status] = (counts[l.status] || 0) + 1);
-  document.getElementById("mfl").innerHTML = ["all"].concat(Object.keys(ST)).filter(k => k === "all" || counts[k])
-    .map(k => `<button type="button" data-f="${k}" class="${mFilter === k ? "on" : ""}">${k === "all" ? "הכל · الكل" : ST[k]} ${counts[k] || 0}</button>`).join("");
-  const q = document.getElementById("mfind").value.trim().toLowerCase();
-  const shown = leads.filter(l => (mFilter === "all" || l.status === mFilter) &&
-    (!q || [l.name, l.handle, l.content, l.country, l.note, l.contact].join(" ").toLowerCase().includes(q)));
-  document.getElementById("mlist").innerHTML = shown.length ? shown.map(l => {
-    const url = profileUrl(l), dm = l.platform === "instagram" ? `https://ig.me/m/${encodeURIComponent(l.handle)}` : url;
-    const meta = [l.content, l.country, l.followers != null ? fmtN(l.followers) + " متابع" : "", l.views != null ? fmtN(l.views) + " مشاهدة" : ""].filter(Boolean).map(esc).join(" · ");
-    return `<div class="lead">
-      <div class="l1"><b>${esc(l.name || "@" + l.handle)}</b>${url ? `<a class="acc" href="${esc(url)}" target="_blank" rel="noopener">@${esc(l.handle)}</a>` : `<span class="acc">${esc(l.handle)}</span>`}
-        <select data-id="${esc(l.id)}" data-s="${esc(l.status)}">${Object.keys(ST).map(k => `<option value="${k}"${k === l.status ? " selected" : ""}>${ST[k]}</option>`).join("")}</select></div>
-      ${meta ? `<div class="meta">${PLAT[l.platform] ? esc(PLAT[l.platform]) + " · " : ""}${meta}</div>` : ""}
-      ${l.contact || l.note ? `<div class="meta">${[l.contact, l.note].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
-      <div class="la">${dm ? `<a href="${esc(dm)}" target="_blank" rel="noopener">${l.platform === "instagram" ? "הודעה · رسالة" : "פרופיל · البروفايل"}</a>` : ""}<button type="button" class="del" data-del="${esc(l.id)}">מחיקה · حذف</button></div>
-    </div>`;
-  }).join("") : `<div class="mempty">${leads.length ? "אין תוצאות · ما في نتائج" : "עוד אין חשבונות. לחצו «הוספה» או חפשו עם Claude · لسا ما في حسابات انستا: اضغط «إضافة» أو دوّر مع Claude"}</div>`;
-}
-document.getElementById("mfl").addEventListener("click", e => { const b = e.target.closest("button[data-f]"); if (b) { mFilter = b.dataset.f; drawLeads(); } });
-document.getElementById("mfind").addEventListener("input", drawLeads);
-document.getElementById("mlist").addEventListener("change", async e => {
-  const sel = e.target.closest("select[data-id]"); if (!sel) return;
-  sel.dataset.s = sel.value; sel.disabled = true;
-  try { const l = await api.leadSet(sel.dataset.id, {status: sel.value}); leads = leads.map(x => x.id === l.id ? l : x); drawLeads(); }
-  catch(err){ mErr(err); } finally { sel.disabled = false; }
-});
-document.getElementById("mlist").addEventListener("click", async e => {
-  const b = e.target.closest("button[data-del]"); if (!b) return;
-  const l = leads.find(x => x.id === b.dataset.del);
-  if (!l || !window.confirm("למחוק את " + (l.name || l.handle) + "? · تحذف " + (l.name || l.handle) + "؟")) return;
-  try { await api.leadDel(l.id); leads = leads.filter(x => x.id !== l.id); drawLeads(); } catch(err){ mErr(err); }
-});
-document.getElementById("maddBtn").addEventListener("click", () => { const a = document.getElementById("madd"); a.hidden = !a.hidden; if (!a.hidden) document.getElementById("mpaste").focus(); });
-
-/* pasted tables: from Claude (CSV), from Excel / Numbers (tabs), markdown tables, or just @accounts */
-const COLS = {
-  name: ["name", "lead name", "lead", "اسم", "الاسم", "اسم العميل", "اسم الحساب", "שם"], account: ["account", "handle", "username", "user", "instagram", "حساب", "الحساب", "يوزر", "חשבון"],
-  content: ["content", "content type", "type", "type of content", "category", "نوع المحتوى", "المحتوى", "المجال", "סוג תוכן"],
-  contact: ["contact", "contact type", "type of contact", "التواصل", "طريقة التواصل", "יצירת קשר"], followers: ["followers", "المتابعين", "متابعين", "עוקבים"],
-  views: ["views", "avg views", "avg reel views", "average views", "المشاهدات", "متوسط المشاهدات", "متوسط مشاهدات الريلز", "צפיות"],
-  country: ["country", "الدولة", "البلد", "מדינה"], note: ["notes", "note", "ملاحظات", "הערות"], status: ["status", "الحالة", "סטטוס"],
-  platform: ["platform", "المنصة", "פלטפורמה"], source: ["source", "المصدر", "מקור"]
-};
-const POS = ["name", "account", "content", "contact", "followers", "views", "country", "note"];
-function splitRow(line, d){
-  if (d !== ",") return line.split(d).map(c => c.trim());
-  const out = []; let cur = "", q = false;
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (q) { if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; } else if (ch === '"') q = false; else cur += ch; }
-    else if (ch === '"') q = true; else if (ch === ",") { out.push(cur.trim()); cur = ""; } else cur += ch;
-  }
-  out.push(cur.trim()); return out;
-}
-function parseLeads(text){
-  let lines = String(text).replace(/\r/g, "").split("\n").map(l => l.trim()).filter(l => l && !/^```/.test(l) && !/^[\s|:\-]+$/.test(l));
-  if (!lines.length) return [];
-  const d = lines.some(l => l.includes("\t")) ? "\t" : lines.some(l => /^\|.*\|$/.test(l)) ? "|" : lines.some(l => l.includes(",")) ? "," : null;
-  let rowsIn = lines.map(l => d ? splitRow(d === "|" ? l.replace(/^\||\|$/g, "") : l, d) : [l]);
-  const key = h => { h = h.toLowerCase().replace(/[*_]/g, "").trim(); const parts = [h].concat(h.split("·").map(x => x.trim()));
-    return Object.keys(COLS).find(k => parts.some(p => COLS[k].includes(p))); };
-  let map = rowsIn[0].map(key);
-  if (map.includes("account")) rowsIn = rowsIn.slice(1);
-  else map = rowsIn[0].length === 1 ? ["account"] : POS.slice();
-  const looksAcc = v => /^@|instagram\.com|tiktok\.com|snapchat\.com|x\.com\//i.test(v || "");
-  const statusKey = v => Object.keys(ST).find(k => k === v || ST[k].split(" · ").includes(v));
-  return rowsIn.map(r => {
-    const o = {};
-    map.forEach((k, i) => { if (k && r[i] != null && r[i] !== "") o[k] = r[i]; });
-    if (!map.includes("account") || (!looksAcc(o.account) && looksAcc(o.name))) { const t = o.account; o.account = o.name; o.name = t; }
-    if (o.status) o.status = statusKey(o.status);
-    if (o.platform) o.platform = Object.keys(PLAT).find(k => k === o.platform.toLowerCase() || PLAT[k].toLowerCase() === o.platform.toLowerCase());
-    return o;
-  }).filter(o => o.account);
-}
-async function importLeads(list, done){
-  if (!list.length) { mmsg.textContent = "לא נמצאו חשבונות · ما لقيت حسابات"; return false; }
-  mmsg.textContent = "…";
-  let added = 0, updated = 0, skipped = 0;
-  try {
-    for (let i = 0; i < list.length; i += 500) {
-      const j = await api.leadsAdd(list.slice(i, i + 500));
-      added += j.added; updated += j.updated; skipped += j.skipped; leads = j.leads;
-    }
-  } catch(e){ mErr(e); drawLeads(); return false; }
-  leadsLoaded = true; drawLeads();
-  mmsg.textContent = `נוספו ${added} · انضاف ${added}` + (updated ? ` · עודכנו ${updated} · تحدّث ${updated}` : "") + (skipped ? ` · לא תקין ${skipped} · مش صالح ${skipped}` : "") + " ✓";
-  if (done) done();
-  return true;
-}
-document.getElementById("mpasteGo").addEventListener("click", () => {
-  const ta = document.getElementById("mpaste");
-  importLeads(parseLeads(ta.value), () => { ta.value = ""; document.getElementById("madd").hidden = true; });
-});
-document.getElementById("mfile").addEventListener("change", e => {
-  const f = e.target.files && e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = () => { importLeads(parseLeads(String(r.result).replace(/^﻿/, "")), () => { document.getElementById("madd").hidden = true; }); e.target.value = ""; };
-  r.readAsText(f, "utf-8");
-});
-
-/* a link with #leads=… (from Claude) brings a ready list: added after asking */
-function readImportHash(){
-  const m = /^#leads=([A-Za-z0-9_-]+)$/.exec(location.hash);
-  if (!m) return;
-  try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
-  try {
-    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
-    const bin = atob(b64 + "===".slice((b64.length + 3) % 4));
-    const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
-    if (Array.isArray(data.leads) && data.leads.length) pendingImport = data.leads.slice(0, 2000).map(l => Object.assign({}, data.defaults || {}, l));
-  } catch(e){}
-}
-function offerImport(){
-  if (!pendingImport) return;
-  showTab("mkt");
-  document.getElementById("mpend").hidden = false;
-  document.getElementById("mpendT").textContent = `${pendingImport.length} חשבונות אינסטגרם מוכנים להוספה · ${pendingImport.length} حساب انستا جاهزين للإضافة`;
-}
-document.getElementById("mpendGo").addEventListener("click", async () => {
-  const list = pendingImport; if (!list) return;
-  if (await importLeads(list)) { pendingImport = null; document.getElementById("mpend").hidden = true; }
-});
-document.getElementById("mpendNo").addEventListener("click", () => { pendingImport = null; document.getElementById("mpend").hidden = true; });
-
-/* search with Claude: opens a new Claude chat with the request filled in */
-const mq = document.getElementById("mq");
-try { mq.value = localStorage.getItem(MQ_KEY) || MQ_DEFAULT; } catch(e){ mq.value = MQ_DEFAULT; }
-mq.addEventListener("input", () => { try { localStorage.setItem(MQ_KEY, mq.value); } catch(e){} });
-document.getElementById("mqReset").addEventListener("click", () => { mq.value = MQ_DEFAULT; try { localStorage.removeItem(MQ_KEY); } catch(e){} });
-document.getElementById("mgo").addEventListener("click", () => {
-  window.open("https://claude.ai/new?q=" + encodeURIComponent(mq.value.trim() + MQ_TAIL), "_blank", "noopener");
-});
-
-/* ---------- Excel: a real .xlsx built here (no library), one sheet, right-to-left ---------- */
-const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
-const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
-function zipStore(files){
-  const te = new TextEncoder(), parts = [], dir = [];
-  const d = new Date(), dt = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), dd = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
-  let off = 0;
-  const u16 = (a, v) => a.push(v & 255, (v >> 8) & 255), u32 = (a, v) => a.push(v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255);
-  for (const [name, text] of files) {
-    const nb = te.encode(name), data = te.encode(text), crc = crc32(data);
-    const h = []; u32(h, 0x04034b50); u16(h, 20); u16(h, 0x0800); u16(h, 0); u16(h, dt); u16(h, dd); u32(h, crc); u32(h, data.length); u32(h, data.length); u16(h, nb.length); u16(h, 0);
-    const c = []; u32(c, 0x02014b50); u16(c, 20); u16(c, 20); u16(c, 0x0800); u16(c, 0); u16(c, dt); u16(c, dd); u32(c, crc); u32(c, data.length); u32(c, data.length); u16(c, nb.length); u16(c, 0); u16(c, 0); u16(c, 0); u16(c, 0); u32(c, 0); u32(c, off);
-    parts.push(new Uint8Array(h), nb, data); dir.push(new Uint8Array(c), nb);
-    off += h.length + nb.length + data.length;
-  }
-  const size = dir.reduce((n, p) => n + p.length, 0), e = [];
-  u32(e, 0x06054b50); u16(e, 0); u16(e, 0); u16(e, files.length); u16(e, files.length); u32(e, size); u32(e, off); u16(e, 0);
-  return new Blob(parts.concat(dir, [new Uint8Array(e)]), {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
-}
-const xe = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c])).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "");
-/** rows: arrays of cells; a cell is a string, a number, or {text, href} for a link */
-function xlsxBlob(header, rows, widths){
-  const col = i => (i >= 26 ? String.fromCharCode(64 + Math.floor(i / 26)) : "") + String.fromCharCode(65 + (i % 26));
-  const cell = (v, r, i, head) => {
-    const ref = col(i) + r;
-    if (head) return `<c r="${ref}" s="1" t="inlineStr"><is><t>${xe(v)}</t></is></c>`;
-    if (v == null || v === "") return "";
-    if (typeof v === "number") return `<c r="${ref}" s="2"><v>${v}</v></c>`;
-    if (typeof v === "object") return `<c r="${ref}" s="3" t="str"><f>${xe('HYPERLINK("' + v.href.replace(/"/g, '""') + '","' + v.text.replace(/"/g, '""') + '")')}</f><v>${xe(v.text)}</v></c>`;
-    return `<c r="${ref}" s="4" t="inlineStr"><is><t xml:space="preserve">${xe(v)}</t></is></c>`;
-  };
-  const last = col(header.length - 1) + (rows.length + 1);
-  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:${last}"/><sheetViews><sheetView rightToLeft="1" workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="18"/><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData><row r="1" ht="24" customHeight="1">${header.map((h, i) => cell(h, 1, i, true)).join("")}</row>${rows.map((r, j) => `<row r="${j + 2}">${r.map((v, i) => cell(v, j + 2, i)).join("")}</row>`).join("")}</sheetData><autoFilter ref="A1:${last}"/></worksheet>`;
-  return zipStore([
-    ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`],
-    ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`],
-    ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView/></bookViews><sheets><sheet name="Instagram" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm._FilterDatabase" localSheetId="0" hidden="1">Instagram!$A$1:$${col(header.length - 1)}$${rows.length + 1}</definedName></definedNames></workbook>`],
-    ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`],
-    ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font><font><u/><sz val="11"/><color rgb="FF0563C1"/><name val="Arial"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD1B06D"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`],
-    ["xl/worksheets/sheet1.xml", sheet]
-  ]);
-}
-const LEAD_HEAD = ["Name · الاسم", "Account · الحساب", "Content type · نوع المحتوى", "Contact · التواصل", "Status · الحالة", "Followers · المتابعين",
-  "Avg reel views · متوسط المشاهدات", "Country · الدولة", "Platform · المنصة", "Notes · ملاحظات", "Source · المصدر", "Added · تاريخ الإضافة"];
-function leadsXlsx(list){
-  const day = t => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
-  return xlsxBlob(LEAD_HEAD, list.map(l => [
-    l.name || "", profileUrl(l) ? {text: "@" + l.handle, href: profileUrl(l)} : l.handle, l.content || "", l.contact || "", (ST[l.status] || "").split(" · ").pop(),
-    l.followers ?? "", l.views ?? "", l.country || "", PLAT[l.platform] || l.platform, l.note || "", l.source || "", l.created ? day(l.created) : ""
-  ]), [22, 24, 22, 22, 11, 13, 15, 18, 11, 40, 18, 13]);
-}
-document.getElementById("mxlsx").addEventListener("click", async () => {
-  const list = leads.filter(l => mFilter === "all" || l.status === mFilter);
-  if (!list.length) { mmsg.textContent = "אין חשבונות להורדה · ما في حسابات للتنزيل"; return; }
-  const d = new Date(), name = `insta-accounts-knafehzohar-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}.xlsx`;
-  const blob = leadsXlsx(list);
-  // phones: the share sheet (Save to Files, WhatsApp, Excel); computers: a normal download
-  if (IS_MOBILE && typeof File === "function" && navigator.canShare) {
-    const file = new File([blob], name, {type: blob.type});
-    if (navigator.canShare({files: [file]})) {
-      try { await navigator.share({files: [file]}); return; } catch(e){ if (e && e.name === "AbortError") return; }
-    }
-  }
-  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-});
-readImportHash();
-
 /* sign-in with the shop's PIN (only with the server) */
 const loginForm = document.getElementById("login");
-function showLogin(){ shopBtn.hidden = true; prnBtn.hidden = true; panel.hidden = true; tabsEl.hidden = true; mktEl.hidden = true; leadsLoaded = false; loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
+function showLogin(){ shopBtn.hidden = true; prnBtn.hidden = true; panel.hidden = true; loginForm.hidden = false; document.getElementById("list").innerHTML = ""; setTimeout(() => document.getElementById("pin").focus(), 50); }
 loginForm.addEventListener("submit", async e => {
   e.preventDefault();
   const err = document.getElementById("lerr"); err.textContent = "";
-  try { await api.login(document.getElementById("pin").value); loginForm.hidden = true; document.getElementById("pin").value = ""; seen = null; signedIn(); refresh(); }
+  try { await api.login(document.getElementById("pin").value); loginForm.hidden = true; document.getElementById("pin").value = ""; seen = null; refresh(); }
   catch(x){ err.textContent = x.code === "wrong_pin" ? "קוד שגוי · الكود غلط" : x.code === "rate_limited" ? "יותר מדי ניסיונות, נסו בעוד רבע שעה · محاولات كتير، جرّب بعد ربع ساعة" : "אין חיבור לשרת · ما في اتصال"; }
 });
-function signedIn(){ if (!LIVE) return; tabsEl.hidden = false; showTab(pendingImport ? "mkt" : mktEl.hidden ? "orders" : "mkt"); offerImport(); }
-if (LIVE && !api.hasToken()) showLogin(); else { signedIn(); refresh(); }
+if (LIVE && !api.hasToken()) showLogin(); else refresh();
 setInterval(() => { if (loginForm.hidden) refresh(); }, LIVE ? 4000 : 1500);
 window.addEventListener("storage", e => { if (!LIVE && e.key === LOCAL_KEY) refresh(); });
 </script>

@@ -195,37 +195,4 @@ await test("test page asked from the phone is printed once by the shop computer"
   assert.equal((await call("POST", "/api/staff/print-test/claim", {}, auth)).body.claimed, false);
 });
 
-await test("marketing leads: staff only, import merges by account, status and delete", async () => {
-  assert.equal((await call("GET", "/api/staff/leads")).status, 401);
-  const { token } = (await call("POST", "/api/staff/login", { pin: "482913" }, { ip: "9.9.9.6" })).body;
-  const auth = { Authorization: "Bearer " + token };
-  const first = await call("POST", "/api/staff/leads", { leads: [
-    { name: "ليان فرحات", account: "@LayanFarhat", content: "تقديم وموضة", followers: "230,084", views: 26172, country: "السعودية", source: "Claude × Instagram" },
-    { name: "TikTok one", account: "https://www.tiktok.com/@some.one?lang=en", followers: "1.2M" },
-    { account: "bad account with spaces" },
-    { name: "<b>x</b>", account: "instagram.com/kannoo18/", status: "contacted" }
-  ] }, auth);
-  assert.equal(first.status, 200, JSON.stringify(first.body));
-  assert.deepEqual([first.body.added, first.body.updated, first.body.skipped], [3, 0, 1]);
-  const layan = first.body.leads.find(l => l.handle === "layanfarhat");
-  assert.equal(layan.platform, "instagram");
-  assert.equal(layan.followers, 230084);
-  assert.equal(layan.status, "new");
-  const tt = first.body.leads.find(l => l.platform === "tiktok");
-  assert.equal(tt.handle, "some.one");
-  assert.equal(tt.followers, 1200000);
-  assert.equal(first.body.leads.find(l => l.handle === "kannoo18").status, "contacted");
-  // the same account again: filled in, not doubled, and the status chosen on the screen stays
-  await call("POST", `/api/staff/leads/${layan.id}`, { status: "replied", note: "ردت عالرسالة" }, auth);
-  const again = await call("POST", "/api/staff/leads", { leads: [{ account: "layanfarhat", followers: 231000, contact: "DM" }] }, auth);
-  assert.deepEqual([again.body.added, again.body.updated], [0, 1]);
-  const l2 = again.body.leads.find(l => l.handle === "layanfarhat");
-  assert.deepEqual([l2.followers, l2.contact, l2.status, l2.note, l2.name], [231000, "DM", "replied", "ردت عالرسالة", "ليان فرحات"]);
-  assert.equal(again.body.leads.length, 3);
-  assert.equal((await call("POST", `/api/staff/leads/${layan.id}`, { status: "maybe" }, auth)).status, 400);
-  assert.equal((await call("POST", "/api/staff/leads", { leads: [] }, auth)).status, 400);
-  assert.equal((await call("POST", `/api/staff/leads/${tt.id}/delete`, {}, auth)).body.ok, true);
-  assert.equal((await call("GET", "/api/staff/leads", undefined, auth)).body.leads.length, 2);
-});
-
 console.log(`\n${passed} tests passed`);
